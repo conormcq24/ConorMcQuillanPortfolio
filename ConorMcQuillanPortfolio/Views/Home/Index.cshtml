@@ -1,0 +1,211 @@
+﻿@{
+    ViewData["Title"] = "About Me";
+}
+<div>
+    @await Html.PartialAsync("_pageCarousel", ViewData["Carousel"])
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white text-center p-3">
+        <h5>Biography</h5>
+        <br />
+        <div class="row">
+            <div class="col-10 offset-1 col-md-8 offset-md-2">
+                <p>Thank you for visiting my website. If you're here, you're likely considering my application to your company or organization. I'm a 28-year-old software engineer with four years of experience at Wostmann & Associates.</p>
+                <p>At Wostmann I worked as a contractor in both the public and private sectors. In the public sector I worked at the city, state, and federal levels of government, in the private sector I worked with oil and gas companies</p>
+                <p>Below I've provided a breakdown of every contract I worked during my time at Wostmann'</p>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white text-center p-3">
+        <h5>Work History</h5>
+        <br />
+        <div class="row">
+            <div class="col-10 offset-1 col-md-8 offset-md-2 mb-3">
+                <div class="accordion" id="workHistoryAccordion">
+
+                    <div class="accordion-item bg-transparent border-0 text-white">
+                        <h2 class="accordion-header" id="noaaHeading">
+                            <button class="accordion-button collapsed bg-dark border border-warning text-white" type="button" data-bs-toggle="collapse" data-bs-target="#noaaCollapse" aria-expanded="false" aria-controls="noaaCollapse">
+                                National Oceanic and Atmospheric Association
+                            </button>
+                        </h2>
+                        <div id="noaaCollapse" class="accordion-collapse collapse" aria-labelledby="noaaHeading" data-bs-parent="#workHistoryAccordion">
+                            <div class="accordion-body text-start"> 
+                                <p>At NOAA I worked on the NMFS Support Team. This included work on a web application called Porcupine, a desktop application called Alders, and various back end services used by both of the previously mentioned applications</p>
+                                <p>These applications processed commercial fishing permits and information relating to them, Porcupine was the newer application of the two and was intended to eventually replace Alders, an older application which was nearing end of life. My work was primarily maintaining Alders and developing Porcupine</p>
+
+                                <h5 class="text-warning">Responsibilities</h5>
+                                <ul>
+                                    <li>Developing new pages for porcupine using React</li>
+                                    <li>Address end user issues reported via Jira board</li>
+                                    <li>Perform Data fixes using PL/SQL Datagrip and Oracle</li>
+                                    <li>Maintain existing Alders desktop application</li>
+                                    <li>Maintain Existing Birt Reports, occasionally create new ones</li>
+                                    <li>Maintain various Java backend Services used by both Alders and Porcupine</li>
+                                    <li>Utilized, React, Java, IntelliJ, Datagrip, Birt Reports, Insomnia and PL/SQL</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item bg-transparent border-0 text-white mt-3">
+                        <h2 class="accordion-header" id="dhssHeading">
+                            <button class="accordion-button collapsed bg-dark border border-warning text-white" type="button" data-bs-toggle="collapse" data-bs-target="#dhssCollapse" aria-expanded="false" aria-controls="dhssCollapse">
+                                Department of Health And Social Services
+                            </button>
+                        </h2>
+                        <div id="dhssCollapse" class="accordion-collapse collapse" aria-labelledby="dhssHeading" data-bs-parent="#workHistoryAccordion">
+                            <div class="accordion-body text-start">
+                                <p>At DHSS I worked as a front end developer on an application called ICCIS which stood for Integrated Child Care Information Systems</p>
+                                <p>This application was a C# .NET Webforms application, and had an outdated UI designed only to work with internet explorer. My work was updating the UI to be cross browser compatible</p>
+
+                                <h5 class="text-warning">Responsibilities</h5>
+                                <ul>
+                                    <li>Modernizing UI</li>
+                                    <li>Implementing new web pages according to client requests</li>
+                                    <li>Providing support for any front end issues related to existing pages</li>
+                                    <li>Utilized C#, ASP.NET Webforms, T-SQL</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item bg-transparent border-0 text-white mt-3">
+                        <h2 class="accordion-header" id="matsuHeading">
+                            <button class="accordion-button collapsed bg-dark border border-warning text-white" type="button" data-bs-toggle="collapse" data-bs-target="#matsuCollapse" aria-expanded="false" aria-controls="matsuCollapse">
+                                Matanuska-Susitna Borough
+                            </button>
+                        </h2>
+                        <div id="matsuCollapse" class="accordion-collapse collapse" aria-labelledby="matsuHeading" data-bs-parent="#workHistoryAccordion">
+                            <div class="accordion-body text-start">
+                                <p>At the City of Matsu Borough I worked on reports related to city processes like tax-billing, assessments, and foreclosures</p>
+                                <p>The worked started primarily with converting old crystal reports to SSRS reports for an application called Openforms. When the conversions where completed I was kept on for maintancence and creating new reports when needed</p>
+                                <h5 class="text-warning">Responsibilities</h5>
+                                <ul>
+                                    <li>Conversion of Crystal Reports to SSRS</li>
+                                    <li>Creating new reports at client request</li>
+                                    <li>Implementing new stored procedures to gather data for new reports</li>
+                                    <li>Optimizing existing stored procedures to improve report speed</li>
+                                    <li>Utilized SSRS, SSMS, Microsoft Report Builder, and T-SQL</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item bg-transparent border-0 text-white mt-3">
+                        <h2 class="accordion-header" id="semcoHeading">
+                            <button class="accordion-button collapsed bg-dark border border-warning text-white" type="button" data-bs-toggle="collapse" data-bs-target="#semcoCollapse" aria-expanded="false" aria-controls="semcoCollapse">
+                                Semco Oil and Gas
+                            </button>
+                        </h2>
+                        <div id="semcoCollapse" class="accordion-collapse collapse" aria-labelledby="semcoHeading" data-bs-parent="#workHistoryAccordion">
+                            <div class="accordion-body text-start">
+                                <p>For Semco Oil and Gas, I worked as a software engineer to implement an urgent fix, that had left their ticketing system unusable. Their custom software was reliant on a 3rd party system sending an XML file through email</p>
+                                <p>The thid party system changed owners, and implemented a change to their system without warning that made it so that instead of sending an xml file they now sent a plain text email which broke SEMCOs software designed to intake these emails</p>
+                                <h5 class="text-warning">Responsibilities</h5>
+                                <ul>
+                                    <li>Built a C# console application to intake the plain text email</li>
+                                    <li>Console app used XSLT to generate the old expected XML format</li>
+                                    <li>Console app deleted plain text email upon succesful generation of XML file</li>
+                                    <li>Console app then resent the email with the new XML file attached</li>
+                                    <li>Semco Software then correctly processed the newly generated email</li>
+                                    <li>Fix was a duck tape middleman solution due to urgency of request, had two weeks to implement</li>
+                                    <li>Utilized C#, Windows Scheduler App, IMap, and XSLT</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white text-center p-3">
+        <h5>Programming Languages</h5>
+        <br />
+        <div class="row">
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">T-SQL</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">PL/SQL</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">MySQL</p>
+            </div>
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">C#</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">C++</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">CSS</p>
+            </div>
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">Java</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">Javascript</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">HTML</p>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white text-center p-3">
+        <h5 class="p-0">Technologies & Frameworks</h5>
+        <br />
+        <div class="row">
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">.NET Core</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">React</p>
+            </div>
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">.NET MVC</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">Node.js</p>
+            </div>
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">.NET Webforms</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">SSRS Reports</p>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white text-center p-3">
+        <h5>Development Software</h5>
+        <br />
+        <div class="row">
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">Visual Studio</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">Insomnia</p>
+            </div>
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">IntelliJ</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">Git</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">Jira</p>
+            </div>
+            <div class="col-6 offset-3 col-md-4 offset-md-0 text-white text-center">
+                <p class="border border-light rounded py-1 px-2 mb-3">Report Builder</p>
+                <p class="border border-light rounded py-1 px-2 mb-3">SSMS</p>
+            </div>
+        </div>
+    </div>
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white text-center p-3">
+        <h5>Contacts & Links</h5>
+        <br />
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="d-flex flex-column align-items-center">
+                    <div class="border rounded d-flex align-items-center justify-content-center mb-3" style="width: 100%; height: 38px;">
+                        832-349-0716
+                    </div>
+                    <div class="border rounded d-flex align-items-center justify-content-center" style="width: 100%; height: 38px;">
+                        conormcqtx@gmail.com
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="d-flex flex-column align-items-center">
+                    <button class="btn btn-primary mb-3" style="width: 100%;" onclick="window.location.href='https://www.linkedin.com/in/conor-mcquillan-39244b184/'">LinkedIn</button>
+                    <button class="btn btn-success" style="width: 100%;" onclick="window.location.href='https://github.com/conormcq24?tab=repositories'">Github</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <a href="/downloads/Resume.pdf" download="Conor_McQuillan_Resume.pdf" class="btn btn-warning fw-bolder" style="width: 100%;">Download My Resume!</a>
+            </div>
+        </div>
+    </div>
+</div>

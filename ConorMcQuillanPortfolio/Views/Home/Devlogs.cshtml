@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "Development Logs";
+}
+<div class="text-white">
+    @await Html.PartialAsync("_pageCarousel", ViewData["Carousel"])
+    <div class="container mt-4 mb-3">
+        <div class="row">
+            <div class="col-12 mb-3">
+                <form id="entrySelectForm" method="get" action="@Url.Action("Devlogs")">
+                    <!-- For medium screens and larger -->
+                    <div class="input-group d-none d-md-flex">
+                        <label for="entrySelect" class="input-group-text bg-warning text-dark fw-bolder" style="width: 200px;">SELECT ENTRY:</label>
+                        <select id="entrySelect" name="page" class="form-select bg-dark text-white" onchange="document.getElementById('entrySelectForm').submit();">
+                            <option>Example Entry Name - 3/6/2025</option>
+                        </select>
+                    </div>
+
+                    <!-- For small screens -->
+                    <div class="d-md-none">
+                        <label for="entrySelectMobile" class="form-label text-warning fw-bolder d-flex align-items-center justify-content-center mb-2">SELECT ENTRY</label>
+                        <select id="entrySelectMobile" name="page" class="form-select bg-dark text-white" onchange="document.getElementById('entrySelectForm').submit();">
+                            <option>Example Entry Name - 3/6/2025</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-12 mb-3">
+                <form id="orderByForm" method="get" action="@Url.Action("Devlogs")">
+                    <div class="input-group d-none d-md-flex">
+                        <label for="orderBy" class="input-group-text bg-warning text-dark fw-bolder" style="width: 200px;">ORDER BY:</label>
+                        <select id="orderBy" name="page" class="form-select bg-dark text-white" onchange="document.getElementById('orderByForm').submit();">
+                            <option>DATE (DESC)</option>
+                            <option>DATE (ASC)</option>
+                            <option>A-Z (DESC)</option>
+                            <option>A-Z (ASC)</option>
+                        </select>
+                    </div>
+
+                    <div class="d-md-none">
+                        <label for="orderByMobile" class="form-label text-warning fw-bolder d-flex align-items-center justify-content-center mb-2">ORDER BY</label>
+                        <select id="orderByMobile" name="page" class="form-select bg-dark text-white" onchange="document.getElementById('orderByForm').submit();">
+                            <option>DATE (DESC)</option>
+                            <option>DATE (ASC)</option>
+                            <option>A-Z (DESC)</option>
+                            <option>A-Z (ASC)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

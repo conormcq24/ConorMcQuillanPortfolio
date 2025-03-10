@@ -1,0 +1,65 @@
+﻿@model ProfessionalPortfolio.Models.CarouselList
+
+@if (Model != null && Model.Items.Any())
+{
+    <div id="pageCarousel" class="carousel slide text-center" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            @{
+                var buttonColors = new[] { "btn-primary", "btn-success", "btn-danger" };
+                var images = new[] { "~/img/conorcamojacket.png", "~/img/conorgreencoat.png", "~/img/conorblueshirt.png" };
+
+                for (int i = 0; i < Math.Min(3, Model.Items.Count); i++)
+                {
+                    var item = Model.Items[i];
+                    var isEven = i % 2 == 0;
+                    var buttonColor = buttonColors[i];
+                    var image = images[i];
+
+                    <div class="carousel-item @(i == 0 ? "active" : "")">
+                        <div class="row">
+                            @if (isEven)
+                            {
+                                <div class="col-5 offset-1 col-md-3 offset-md-3">
+                                    <img src="@Url.Content(image)" class="d-block w-75 mx-auto" alt="...">
+                                </div>
+                                <div class="col-5 col-md-3 d-flex flex-column justify-content-center text-white fw-bold">
+                                    <p>@item.description</p>
+                                    <div class="align-self-center">
+                                        <a asp-action="@item.action" class="btn btn-sm @buttonColor" type="button">@item.btnText</a>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-5 col-md-3 offset-1 offset-md-3 d-flex flex-column justify-content-center text-white fw-bold">
+                                    <p>@item.description</p>
+                                    <div class="align-self-center">
+                                        <a asp-action="@item.action" class="btn btn-sm @buttonColor" type="button">@item.btnText</a>
+                                    </div>
+                                </div>
+                                <div class="col-5 col-md-3">
+                                    <img src="@Url.Content(image)" class="d-block w-75 mx-auto" alt="...">
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#pageCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#pageCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+        <br />
+        <br />
+        <Row>
+            <div class="col-8 offset-2 text-center text-white fw-bold p-2 d-flex align-items-center justify-content-center">
+                <h3 class="m-0 text-warning fw-bolder tektur-font">@Model.PageTitle.ToUpper()</h3>
+            </div>
+        </Row>
+    </div>
+}
