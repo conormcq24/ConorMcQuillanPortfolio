@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ConorMcQuillanPortfolio.Models;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -28,10 +29,92 @@ public class HomeController : Controller
         return View();
     }
 
-    public IActionResult Devlogs()
+    public IActionResult Devlogs(string appType = "", string technology = "", string sortBy = "date-desc", string page = "")
     {
         ViewData["Carousel"] = GetCarouselItems("Devlogs");
-        return View();
+
+
+        var journalList = new JournalList();
+
+        journalList.AddJournal(new JournalItem(
+            "Building a Portfolio Website",
+            "This journal covers my experience creating an ASP.NET Core MVC portfolio website from scratch.",
+            "Web Application",
+            new string[] { "C#", "ASP.NET Core", "Bootstrap", "MVC", "HTML/CSS" },
+            new DateOnly(2025, 3, 6)
+        ));
+
+        journalList.AddJournal(new JournalItem(
+            "Creating a Task Management API",
+            "In this project, I built a RESTful API for managing tasks and projects.",
+            "API",
+            new string[] { "C#", ".NET Core", "Entity Framework", "SQL Server", "REST" },
+            new DateOnly(2025, 2, 15)
+        ));
+
+        journalList.AddJournal(new JournalItem(
+            "Game Development with Unity",
+            "This journal documents my first steps in game development using Unity.",
+            "Game",
+            new string[] { "C#", "Unity", "3D Modeling", "Game Design" },
+            new DateOnly(2025, 2, 15)
+        ));
+
+        var filteredJournals = new List<JournalItem>(journalList.journalList);
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(appType))
+        {
+            filteredJournals = filteredJournals.Where(j => j.journalAppType == appType).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(technology))
+        {
+            filteredJournals = filteredJournals.Where(j => j.journalTech.Contains(technology)).ToList();
+        }
+
+        switch (sortBy)
+        {
+            case "date-asc":
+                filteredJournals = filteredJournals.OrderBy(j => j.journalDate).ToList();
+                break;
+            case "title-asc":
+                filteredJournals = filteredJournals.OrderBy(j => j.journalTitle).ToList();
+                break;
+            case "title-desc":
+                filteredJournals = filteredJournals.OrderByDescending(j => j.journalTitle).ToList();
+                break;
+            case "date-desc":
+            default:
+                filteredJournals = filteredJournals.OrderByDescending(j => j.journalDate).ToList();
+                break;
+        }
+
+        // Create a new JournalList with the filtered results
+        var resultList = new JournalList();
+        foreach (var journal in filteredJournals)
+        {
+            resultList.AddJournal(journal);
+        }
+
+        if (!string.IsNullOrEmpty(page))
+        {
+            // Move the selected journal to the beginning of the list if it exists
+            var selectedJournal = resultList.journalList.FirstOrDefault(j => j.journalTitle == page);
+            if (selectedJournal != null)
+            {
+                // Remove and re-add to the beginning of the list
+                resultList.journalList.Remove(selectedJournal);
+                resultList.journalList.Insert(0, selectedJournal);
+            }
+        }
+
+        // Store the current filter values in ViewData to maintain state in the form
+        ViewData["AppType"] = appType;
+        ViewData["Technology"] = technology;
+        ViewData["SortBy"] = sortBy;
+
+        return View(resultList);
     }
 
     public IActionResult Models()
