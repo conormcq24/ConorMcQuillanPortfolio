@@ -1,6 +1,13 @@
 ﻿@model ConorMcQuillanPortfolio.Models.JournalList
 @{
     ViewData["Title"] = "Development Logs";
+    var unfilteredList = ViewData["UnfilteredList"] as ConorMcQuillanPortfolio.Models.JournalList;
+    var filteredList = ViewData["FilteredList"] as ConorMcQuillanPortfolio.Models.JournalList;
+    var selectedAppType = ViewData["AppType"] as string;
+    var selectedTechType = ViewData["TechType"] as string;
+    var selectedOrderType = ViewData["OrderType"] as string;
+    var allAppTypes = ViewData["AllAppTypes"] as List<string>;
+    var allTechTypes = ViewData["AllTechTypes"] as List<string>;
 }
 <div class="text-white">
     @await Html.PartialAsync("_pageCarousel", ViewData["Carousel"])
@@ -12,40 +19,60 @@
                         <label for="entrySelect" class="input-group-text bg-black text-white fw-bolder d-flex justify-content-start ps-3 py-2" style="width: 200px;">
                             <h5 class="mb-0">Select Entry</h5>
                         </label>
-                        <select id="entrySelect" name="page" class="form-select bg-dark text-white" onchange="document.getElementById('entrySelectForm').submit();">
-                            @foreach (var journal in Model.journalList.OrderByDescending(j => j.journalDate))
-                            {
-                                if (journal == Model.journalList.FirstOrDefault())
+                        <select id="entrySelect" name="selectedJournal" class="form-select bg-dark text-white" onchange="this.form.submit();">
+                            @{
+                                var listToDisplay = string.IsNullOrEmpty(selectedAppType) &&
+                                string.IsNullOrEmpty(selectedTechType) &&
+                                selectedOrderType == "DateDown"
+                                ? unfilteredList : filteredList;
+
+                                var selectedJournal = ViewData["SelectedJournal"] as ConorMcQuillanPortfolio.Models.JournalItem;
+
+                                foreach (var journal in listToDisplay.journalList)
                                 {
-                                    <option value="@journal.journalTitle" selected>@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
-                                }
-                                else
-                                {
-                                    <option value="@journal.journalTitle">@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
+                                    if (selectedJournal != null && journal.journalTitle == selectedJournal.journalTitle)
+                                    {
+                                        <option value="@journal.journalTitle" selected>@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@journal.journalTitle">@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
+                                    }
                                 }
                             }
                         </select>
                     </div>
                     <div class="d-md-none">
                         <label for="entrySelectMobile" class="form-label text-warning fw-bolder d-flex align-items-center justify-content-center mb-2">SELECT ENTRY</label>
-                        <select id="entrySelectMobile" name="page" class="form-select bg-dark text-white" onchange="document.getElementById('entrySelectForm').submit();">
-                            @foreach (var journal in Model.journalList.OrderByDescending(j => j.journalDate))
-                            {
-                                if (journal == Model.journalList.FirstOrDefault())
+                        <select id="entrySelectMobile" name="selectedJournal" class="form-select bg-dark text-white" onchange="this.form.submit();">
+                            @{
+                                var mobileListToDisplay = string.IsNullOrEmpty(selectedAppType) &&
+                                string.IsNullOrEmpty(selectedTechType) &&
+                                selectedOrderType == "DateDown"
+                                ? unfilteredList : filteredList;
+
+                                foreach (var journal in mobileListToDisplay.journalList)
                                 {
-                                    <option value="@journal.journalTitle" selected>@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
-                                }
-                                else
-                                {
-                                    <option value="@journal.journalTitle">@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
+                                    if (selectedJournal != null && journal.journalTitle == selectedJournal.journalTitle)
+                                    {
+                                        <option value="@journal.journalTitle" selected>@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@journal.journalTitle">@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
+                                    }
                                 }
                             }
                         </select>
+
+                        <!-- Hidden fields to maintain current filters -->
+                        <input type="hidden" name="appType" value="@selectedAppType" />
+                        <input type="hidden" name="techType" value="@selectedTechType" />
+                        <input type="hidden" name="orderType" value="@selectedOrderType" />
                     </div>
                 </form>
             </div>
             <div class="col-12 mb-3">
-                <form method="get" action="/Home/Devlogs">
                 <div class="card bg-dark text-white border-white border-opacity-50">
                     <div class="card-header bg-black d-flex justify-content-between align-items-center">
                         <h5 class="mb-0 text-white">Filter Dropdown</h5>
@@ -55,75 +82,127 @@
                     </div>
                     <div class="collapse" id="filterCollapse">
                         <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6 col-lg-3">
-                                    <label for="appTypeFilter" class="form-label">Application Type</label>
-                                    <select id="appTypeFilter" name="appType" class="form-select bg-dark text-white">
-                                        <option value="">All Types</option>
-                                        @foreach (var appType in Model.GetUniqueAppTypes())
-                                        {
-                                            <option>@appType</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="col-md-6 col-lg-3">
-                                    <label for="techFilter" class="form-label">Technology</label>
-                                    <select id="techFilter" name="technology" class="form-select bg-dark text-white">
-                                        <option value="">All Technologies</option>
-                                        @foreach (var tech in Model.GetUniqueTechnologies())
-                                        {
-                                            <option>@tech</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="col-md-6 col-lg-3">
-                                    <label for="sortOption" class="form-label">Sort By</label>
-                                    <select id="sortOption" name="sortBy" class="form-select bg-dark text-white">
-                                        <option value="date-desc">Date (Newest First)</option>
-                                        <option value="date-asc">Date (Oldest First)</option>
-                                        <option value="title-asc">Title (A-Z)</option>
-                                        <option value="title-desc">Title (Z-A)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 col-lg-3 d-flex align-items-end">
-                                    <div class="d-flex w-100 gap-2">
-                                        <button type="submit" class="btn btn-primary flex-grow-1">Apply</button>
-                                        <a href="/Home/Devlogs" class="btn btn-danger flex-grow-1">Clear</a>
+                            <form id="filterSelectForm" method="get" action="@Url.Action("Devlogs")">
+                                <div class="row g-3">
+                                    <div class="col-md-6 col-lg-3">
+                                        <label for="appTypeFilter" class="form-label">Application Type</label>
+                                        <select id="appTypeFilter" name="appType" class="form-select bg-dark text-white">
+                                            @foreach (var appType in allAppTypes)
+                                            {
+                                                if ((string.IsNullOrEmpty(selectedAppType) && appType == "All App Types") ||
+                                                (!string.IsNullOrEmpty(selectedAppType) && appType == selectedAppType))
+                                                {
+                                                    <option value="@appType" selected>@appType</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@appType">@appType</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label for="techFilter" class="form-label">Technology</label>
+                                        <select id="techFilter" name="techType" class="form-select bg-dark text-white">
+                                            @foreach (var techType in allTechTypes)
+                                            {
+                                                if ((string.IsNullOrEmpty(selectedTechType) && techType == "All Tech Types") ||
+                                                (!string.IsNullOrEmpty(selectedTechType) && techType == selectedTechType))
+                                                {
+                                                    <option value="@techType" selected>@techType</option>
+                                                }
+                                                else
+                                                {
+                                                    <option value="@techType">@techType</option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label for="sortOption" class="form-label">Sort By</label>
+                                        <select id="sortOption" name="orderType" class="form-select bg-dark text-white">
+                                            @if (selectedOrderType == "DateDown")
+                                            {
+                                                <option value="DateDown" selected>Date (Newest First)</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="DateDown">Date (Newest First)</option>
+                                            }
+
+                                            @if (selectedOrderType == "DateUp")
+                                            {
+                                                <option value="DateUp" selected>Date (Oldest First)</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="DateUp">Date (Oldest First)</option>
+                                            }
+
+                                            @if (selectedOrderType == "A-Z")
+                                            {
+                                                <option value="A-Z" selected>Title (A-Z)</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="A-Z">Title (A-Z)</option>
+                                            }
+
+                                            @if (selectedOrderType == "Z-A")
+                                            {
+                                                <option value="Z-A" selected>Title (Z-A)</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="Z-A">Title (Z-A)</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3 d-flex align-items-end">
+                                        <div class="d-flex w-100 gap-2">
+                                            <button class="btn btn-primary flex-grow-1">Apply</button>
+                                            <a href="@Url.Action("Devlogs")" class="btn btn-danger flex-grow-1">Clear</a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
-                </form>
             </div>
         </div>
-        @if (Model.journalList.Any())
-        {
-            var selectedJournal = Model.journalList.FirstOrDefault();
-            <div class="row">
-                <div class="col-12">
-                    <div class="card bg-dark text-white border-warning border-opacity-50">
-                        <div class="card-header d-flex bg-black justify-content-between align-items-center">
-                            <h5 class="mb-0 text-white">@selectedJournal.journalTitle</h5>
-                            <span class="badge bg-warning text-dark">@selectedJournal.journalDate.ToString("MMM d, yyyy")</span>
-                        </div>
-                        <div class="card-body">
-                            <h5 class="text-warning">Application Type: @selectedJournal.journalAppType</h5>
-                            <div class="mb-3 d-flex flex-wrap align-items-center">
-                                <strong class="d-none d-md-inline me-2">Technologies:</strong>
-                                @foreach (var tech in selectedJournal.journalTech)
-                                {
-                                    <span class="badge bg-secondary me-1 mb-1">@tech</span>
-                                }
+        <div class="row">
+            <div class="col-12">
+                @{
+                    var journal = ViewData["SelectedJournal"] as ConorMcQuillanPortfolio.Models.JournalItem;
+                    if (journal != null)
+                    {
+                        <div class="card bg-dark text-white border-warning border-opacity-50">
+                            <div class="card-header d-flex bg-black justify-content-between align-items-center">
+                                <h5 class="mb-0 text-white">@journal.journalTitle</h5>
+                                <span class="badge bg-warning text-dark">@journal.journalDate.ToString("MMM d, yyyy")</span>
                             </div>
-                            <div class="mt-4">
-                                @selectedJournal.journalBody
+                            <div class="card-body">
+                                <h5 class="text-warning">Application Type: @journal.journalAppType</h5>
+                                <div class="mb-3 d-flex flex-wrap align-items-center">
+                                    <strong class="d-none d-md-inline me-2">Technologies:</strong>
+                                    @foreach (var tech in journal.journalTech)
+                                    {
+                                        <span class="badge bg-secondary me-1 mb-1">@tech</span>
+                                    }
+                                </div>
+                                <div class="mt-4">
+                                    @journal.journalBody
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">No journal entries found matching the current filters.</div>
+                    }
+                }
             </div>
-        }
+        </div>
     </div>
 </div>

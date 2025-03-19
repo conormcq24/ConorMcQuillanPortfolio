@@ -148,3 +148,6 @@ TestResults/
 *.coverage
 *.coveragexml
 coverage/
+
+# Ignore ObsidianImages directory
+ConorMcQuillanPortfolio/wwwroot/ObsidianImages/

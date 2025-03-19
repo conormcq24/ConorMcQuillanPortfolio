@@ -1,0 +1,22 @@
+﻿@{
+    ViewData["Title"] = "GitHub Authentication Test";
+}
+
+<div class="text-center">
+    <h1 class="display-4">GitHub Authentication Test</h1>
+
+    @if ((bool)ViewData["IsAuthenticated"])
+    {
+        <div class="alert alert-success mt-4">
+            <h4>Authentication Successful!</h4>
+            <p>Your application has successfully authenticated with your GitHub repository.</p>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger mt-4">
+            <h4>Authentication Failed</h4>
+            <p>Unable to authenticate with your GitHub repository. Please check your access token and permissions.</p>
+        </div>
+    }
+</div>

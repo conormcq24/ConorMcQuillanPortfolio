@@ -1,7 +1,12 @@
+using ConorMcQuillanPortfolio.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+// Register HttpClient and GitHub auth service
+builder.Services.AddHttpClient<GithubService>();
+builder.Services.AddScoped<GithubService>();
 
 var app = builder.Build();
 

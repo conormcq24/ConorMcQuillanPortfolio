@@ -1,20 +1,30 @@
 using System.Diagnostics;
+using System.Security.AccessControl;
 using ConorMcQuillanPortfolio.Models;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using ProfessionalPortfolio.Models;
+using ConorMcQuillanPortfolio.Models;
+using ConorMcQuillanPortfolio.Services;
 
-namespace ProfessionalPortfolio.Controllers;
+namespace ConorMcQuillanPortfolio.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger;
-    // private readonly JournalService _journalService;
 
-    public HomeController(ILogger<HomeController> logger)
+    private JournalList _unfilteredList = new JournalList();
+    private JournalList _filteredList = new JournalList();
+
+
+    private readonly ILogger<HomeController> _logger;
+    private readonly GithubService _githubService;
+
+    public HomeController(
+        ILogger<HomeController> logger,
+        GithubService githubService)
     {
         _logger = logger;
+        _githubService = githubService;
     }
 
     public IActionResult Index()
@@ -29,92 +39,119 @@ public class HomeController : Controller
         return View();
     }
 
-    public IActionResult Devlogs(string appType = "", string technology = "", string sortBy = "date-desc", string page = "")
+    public async Task<IActionResult> TestGitHubAuth()
     {
+        bool isAuthenticated = await _githubService.VerifyAuthenticationAsync();
+
+        ViewData["IsAuthenticated"] = isAuthenticated;
+        _logger.LogInformation("GitHub authentication test result: {Result}", isAuthenticated);
+
+        return View();
+    }
+
+    public async Task<IActionResult> TestDownloadImages()
+    {
+        JournalList testJournalList = new JournalList();
+        testJournalList = await _githubService.PopulateJournalList();
+        bool success = await _githubService.DownloadImagesAsync();
+
+        var result = new
+        {
+            Success = success,
+            Message = success ? "Images successfully downloaded" : "Failed to download images",
+            Timestamp = DateTime.Now
+        };
+
+        return Json(result);
+    }
+
+    public async Task<IActionResult> Devlogs(string appType = "", string techType = "", string orderType = "DateDown", string selectedJournal = "")
+    {
+        // Check for no filter and empty strings if occurs
+        if (appType == "All App Types")
+        {
+            appType = "";
+        }
+
+        if (techType == "All Tech Types")
+        {
+            techType = "";
+        }
+
+        // Get journal entries from GitHub repository instead of using dummy data
+        _unfilteredList = await _githubService.PopulateJournalList();
+
+        // If no journals were found, provide fallback data
+        if (_unfilteredList.journalList.Count == 0)
+        {
+            _logger.LogWarning("No journal entries found from GitHub, using fallback data");
+
+            // Create fallback dummy list
+            _unfilteredList.AddJournal(new JournalItem(
+                "Building a Portfolio Website",
+                "This journal covers my experience creating an ASP.NET Core MVC portfolio website from scratch.",
+                "Web Application",
+                "'\"C#, .NET CORE, VS Studio\"'",
+                "3/19/2025"
+            ));
+
+            _unfilteredList.AddJournal(new JournalItem(
+                "Creating a Task Management API",
+                "In this project, I built a RESTful API for managing tasks and projects.",
+                "API",
+                "'\"C#, .NET CORE, VS Studio, API\"'",
+                "3/18/2025"
+            ));
+
+            _unfilteredList.AddJournal(new JournalItem(
+                "Game Development with Unity",
+                "This journal documents my first steps in game development using Unity.",
+                "Game",
+                "'\"C#, Unity, Blender\"'",
+                "3/19/2025"
+            ));
+        }
+
+        // Create a copy of the list for _filteredlist
+        _filteredList = new JournalList();
+        foreach (var item in _unfilteredList.journalList)
+        {
+            _filteredList.AddJournal(item);
+        }
+        _filteredList = trimList(_filteredList, appType, techType, orderType);
+
+        // Get all tech types from unfilteredList
+        List<string> allTechTypes = _unfilteredList.GetUniqueTechnologies();
+        allTechTypes.Insert(0, "All Tech Types");
+
+        // Get all app types from unfilteredList
+        List<string> allAppTypes = _unfilteredList.GetUniqueAppTypes();
+        allAppTypes.Insert(0, "All App Types");
+
+        // Get active journal
+        JournalItem journalToDisplay;
+        if (string.IsNullOrEmpty(selectedJournal) || !_filteredList.journalList.Any(j => j.journalTitle == selectedJournal))
+        {
+            // Default to the first item in the filtered list
+            journalToDisplay = _filteredList.journalList.FirstOrDefault();
+        }
+        else
+        {
+            // Find the selected journal
+            journalToDisplay = _filteredList.journalList.FirstOrDefault(j => j.journalTitle == selectedJournal);
+        }
+
         ViewData["Carousel"] = GetCarouselItems("Devlogs");
-
-
-        var journalList = new JournalList();
-
-        journalList.AddJournal(new JournalItem(
-            "Building a Portfolio Website",
-            "This journal covers my experience creating an ASP.NET Core MVC portfolio website from scratch.",
-            "Web Application",
-            new string[] { "C#", "ASP.NET Core", "Bootstrap", "MVC", "HTML/CSS" },
-            new DateOnly(2025, 3, 6)
-        ));
-
-        journalList.AddJournal(new JournalItem(
-            "Creating a Task Management API",
-            "In this project, I built a RESTful API for managing tasks and projects.",
-            "API",
-            new string[] { "C#", ".NET Core", "Entity Framework", "SQL Server", "REST" },
-            new DateOnly(2025, 2, 15)
-        ));
-
-        journalList.AddJournal(new JournalItem(
-            "Game Development with Unity",
-            "This journal documents my first steps in game development using Unity.",
-            "Game",
-            new string[] { "C#", "Unity", "3D Modeling", "Game Design" },
-            new DateOnly(2025, 2, 15)
-        ));
-
-        var filteredJournals = new List<JournalItem>(journalList.journalList);
-
-        // Apply filters
-        if (!string.IsNullOrEmpty(appType))
-        {
-            filteredJournals = filteredJournals.Where(j => j.journalAppType == appType).ToList();
-        }
-
-        if (!string.IsNullOrEmpty(technology))
-        {
-            filteredJournals = filteredJournals.Where(j => j.journalTech.Contains(technology)).ToList();
-        }
-
-        switch (sortBy)
-        {
-            case "date-asc":
-                filteredJournals = filteredJournals.OrderBy(j => j.journalDate).ToList();
-                break;
-            case "title-asc":
-                filteredJournals = filteredJournals.OrderBy(j => j.journalTitle).ToList();
-                break;
-            case "title-desc":
-                filteredJournals = filteredJournals.OrderByDescending(j => j.journalTitle).ToList();
-                break;
-            case "date-desc":
-            default:
-                filteredJournals = filteredJournals.OrderByDescending(j => j.journalDate).ToList();
-                break;
-        }
-
-        // Create a new JournalList with the filtered results
-        var resultList = new JournalList();
-        foreach (var journal in filteredJournals)
-        {
-            resultList.AddJournal(journal);
-        }
-
-        if (!string.IsNullOrEmpty(page))
-        {
-            // Move the selected journal to the beginning of the list if it exists
-            var selectedJournal = resultList.journalList.FirstOrDefault(j => j.journalTitle == page);
-            if (selectedJournal != null)
-            {
-                // Remove and re-add to the beginning of the list
-                resultList.journalList.Remove(selectedJournal);
-                resultList.journalList.Insert(0, selectedJournal);
-            }
-        }
-
-        // Store the current filter values in ViewData to maintain state in the form
+        ViewData["UnfilteredList"] = _unfilteredList;
+        ViewData["FilteredList"] = _filteredList;
         ViewData["AppType"] = appType;
-        ViewData["Technology"] = technology;
-        ViewData["SortBy"] = sortBy;
+        ViewData["TechType"] = techType;
+        ViewData["OrderType"] = orderType;
+        ViewData["AllAppTypes"] = allAppTypes;
+        ViewData["AllTechTypes"] = allTechTypes;
+        ViewData["SelectedJournal"] = journalToDisplay;
 
-        return View(resultList);
+        return View();
     }
 
     public IActionResult Models()
@@ -129,6 +166,37 @@ public class HomeController : Controller
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 
+    private static JournalList trimList(JournalList filteredList, string appType, string techType, string orderType)
+    {
+        if (!string.IsNullOrEmpty(appType))
+        {
+            filteredList.journalList = filteredList.journalList.Where(item => item.journalAppType == appType).ToList();
+        }
+        if (!string.IsNullOrEmpty(techType))
+        {
+            filteredList.journalList = filteredList.journalList.Where(item => item.journalTech.Contains(techType)).ToList();
+        }
+        if (!string.IsNullOrEmpty(orderType))
+        {
+            switch (orderType)
+            {
+                case "A-Z":
+                    filteredList.journalList = filteredList.journalList.OrderBy(item => item.journalTitle).ToList();
+                    break;
+                case "Z-A":
+                    filteredList.journalList = filteredList.journalList.OrderByDescending(item => item.journalTitle).ToList();
+                    break;
+                case "DateUp":
+                    filteredList.journalList = filteredList.journalList.OrderBy(item => item.journalDate).ToList();
+                    break;
+                case "DateDown":
+                    filteredList.journalList = filteredList.journalList.OrderByDescending(item => item.journalDate).ToList();
+                    break;
+            }
+        }
+
+        return filteredList;
+    }
     private static CarouselList GetCarouselItems(string currentView)
     {
         var carouselList = new CarouselList

@@ -7,29 +7,38 @@
         public string journalAppType { get; set; }
         public string[] journalTech { get; set; }
         public DateOnly journalDate { get; set; }
-        public JournalItem(string title, string body, string appType, string[] tech, DateOnly date)
+        public JournalItem(string title, string body, string appType, string tech, string date)
         {
             journalTitle = title;
             journalBody = body;
             journalAppType = appType;
-            journalTech = tech;
-            journalDate = date;
+            journalTech = ParseTechnologies(tech);
+            journalDate = ParseDate(date);
         }
 
-        public void ParseTechnologies(string techString)
+        public string[] ParseTechnologies(string techString)
         {
+            // First trim the outer quotes ('" at the start and "' at the end)
+            string innerContent = techString;
+            if (techString.Length >= 4 && techString.StartsWith("'\"") && techString.EndsWith("\"'"))
+            {
+                innerContent = techString.Substring(2, techString.Length - 4);
+            }
 
-            string trimmedString = techString.Trim('"');
-
-            journalTech = trimmedString.Split(',')
-                                      .Select(t => t.Trim())
-                                      .ToArray();
+            // Now trim any remaining quotes and split by commas
+            string trimmedString = innerContent.Trim('"');
+            string[] tempJournalTech =
+                trimmedString.Split(',')
+                .Select(t => t.Trim())
+                .ToArray();
+            return tempJournalTech;
         }
 
-        public void ParseDate(string dateString)
+        public DateOnly ParseDate(string dateString)
         {
             DateOnly.TryParse(dateString, out DateOnly result);
-            journalDate = result;
+            DateOnly tempJournalDate = result;
+            return tempJournalDate;
         }
     }
 }

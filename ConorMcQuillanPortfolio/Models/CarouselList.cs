@@ -1,4 +1,4 @@
-﻿namespace ProfessionalPortfolio.Models
+﻿namespace ConorMcQuillanPortfolio.Models
 {
     public class CarouselList
     {
