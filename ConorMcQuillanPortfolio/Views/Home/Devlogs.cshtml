@@ -15,9 +15,9 @@
         <div class="row">
             <div class="col-12 mb-3">
                 <form id="entrySelectForm" method="get" action="@Url.Action("Devlogs")">
-                    <div class="input-group d-none d-md-flex">
-                        <label for="entrySelect" class="input-group-text bg-black text-white fw-bolder d-flex justify-content-start ps-3 py-2" style="width: 200px;">
-                            <h5 class="mb-0">Select Entry</h5>
+                    <div class="input-group d-md-flex">
+                        <label for="entrySelect" class="input-group-text bg-black text-white fw-bolder d-flex justify-content-start ps-3 py-2">
+                            <h5 class="mb-0">Journal:</h5>
                         </label>
                         <select id="entrySelect" name="selectedJournal" class="form-select bg-dark text-white" onchange="this.form.submit();">
                             @{
@@ -42,34 +42,10 @@
                             }
                         </select>
                     </div>
-                    <div class="d-md-none">
-                        <label for="entrySelectMobile" class="form-label text-warning fw-bolder d-flex align-items-center justify-content-center mb-2">SELECT ENTRY</label>
-                        <select id="entrySelectMobile" name="selectedJournal" class="form-select bg-dark text-white" onchange="this.form.submit();">
-                            @{
-                                var mobileListToDisplay = string.IsNullOrEmpty(selectedAppType) &&
-                                string.IsNullOrEmpty(selectedTechType) &&
-                                selectedOrderType == "DateDown"
-                                ? unfilteredList : filteredList;
-
-                                foreach (var journal in mobileListToDisplay.journalList)
-                                {
-                                    if (selectedJournal != null && journal.journalTitle == selectedJournal.journalTitle)
-                                    {
-                                        <option value="@journal.journalTitle" selected>@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@journal.journalTitle">@journal.journalTitle - @journal.journalDate.ToString("M/d/yyyy")</option>
-                                    }
-                                }
-                            }
-                        </select>
-
-                        <!-- Hidden fields to maintain current filters -->
-                        <input type="hidden" name="appType" value="@selectedAppType" />
-                        <input type="hidden" name="techType" value="@selectedTechType" />
-                        <input type="hidden" name="orderType" value="@selectedOrderType" />
-                    </div>
+                    <!-- Hidden fields to maintain current filters -->
+                    <input type="hidden" name="appType" value="@selectedAppType" />
+                    <input type="hidden" name="techType" value="@selectedTechType" />
+                    <input type="hidden" name="orderType" value="@selectedOrderType" />
                 </form>
             </div>
             <div class="col-12 mb-3">
@@ -191,8 +167,8 @@
                                         <span class="badge bg-secondary me-1 mb-1">@tech</span>
                                     }
                                 </div>
-                                <div class="mt-4">
-                                    @journal.journalBody
+                                <div class="mt-4 markdown-body">
+                                    @Html.Raw(journal.MarkdownHtml)
                                 </div>
                             </div>
                         </div>

@@ -11,20 +11,21 @@ namespace ConorMcQuillanPortfolio.Controllers;
 
 public class HomeController : Controller
 {
-
-    private JournalList _unfilteredList = new JournalList();
     private JournalList _filteredList = new JournalList();
 
 
     private readonly ILogger<HomeController> _logger;
     private readonly GithubService _githubService;
+    private readonly IWebHostEnvironment _environment;
 
     public HomeController(
         ILogger<HomeController> logger,
-        GithubService githubService)
+        GithubService githubService,
+        IWebHostEnvironment environment)
     {
         _logger = logger;
         _githubService = githubService;
+        _environment = environment;
     }
 
     public IActionResult Index()
@@ -37,32 +38,6 @@ public class HomeController : Controller
     {
         ViewData["Carousel"] = GetCarouselItems("Projects");
         return View();
-    }
-
-    public async Task<IActionResult> TestGitHubAuth()
-    {
-        bool isAuthenticated = await _githubService.VerifyAuthenticationAsync();
-
-        ViewData["IsAuthenticated"] = isAuthenticated;
-        _logger.LogInformation("GitHub authentication test result: {Result}", isAuthenticated);
-
-        return View();
-    }
-
-    public async Task<IActionResult> TestDownloadImages()
-    {
-        JournalList testJournalList = new JournalList();
-        testJournalList = await _githubService.PopulateJournalList();
-        bool success = await _githubService.DownloadImagesAsync();
-
-        var result = new
-        {
-            Success = success,
-            Message = success ? "Images successfully downloaded" : "Failed to download images",
-            Timestamp = DateTime.Now
-        };
-
-        return Json(result);
     }
 
     public async Task<IActionResult> Devlogs(string appType = "", string techType = "", string orderType = "DateDown", string selectedJournal = "")
@@ -78,54 +53,26 @@ public class HomeController : Controller
             techType = "";
         }
 
+        var unfilteredList = await _githubService.PopulateJournalList();
+
         // Get journal entries from GitHub repository instead of using dummy data
-        _unfilteredList = await _githubService.PopulateJournalList();
-
-        // If no journals were found, provide fallback data
-        if (_unfilteredList.journalList.Count == 0)
-        {
-            _logger.LogWarning("No journal entries found from GitHub, using fallback data");
-
-            // Create fallback dummy list
-            _unfilteredList.AddJournal(new JournalItem(
-                "Building a Portfolio Website",
-                "This journal covers my experience creating an ASP.NET Core MVC portfolio website from scratch.",
-                "Web Application",
-                "'\"C#, .NET CORE, VS Studio\"'",
-                "3/19/2025"
-            ));
-
-            _unfilteredList.AddJournal(new JournalItem(
-                "Creating a Task Management API",
-                "In this project, I built a RESTful API for managing tasks and projects.",
-                "API",
-                "'\"C#, .NET CORE, VS Studio, API\"'",
-                "3/18/2025"
-            ));
-
-            _unfilteredList.AddJournal(new JournalItem(
-                "Game Development with Unity",
-                "This journal documents my first steps in game development using Unity.",
-                "Game",
-                "'\"C#, Unity, Blender\"'",
-                "3/19/2025"
-            ));
-        }
+        unfilteredList = await _githubService.PopulateJournalList();
+        
 
         // Create a copy of the list for _filteredlist
         _filteredList = new JournalList();
-        foreach (var item in _unfilteredList.journalList)
+        foreach (var item in unfilteredList.journalList)
         {
             _filteredList.AddJournal(item);
         }
         _filteredList = trimList(_filteredList, appType, techType, orderType);
 
         // Get all tech types from unfilteredList
-        List<string> allTechTypes = _unfilteredList.GetUniqueTechnologies();
+        List<string> allTechTypes = unfilteredList.GetUniqueTechnologies();
         allTechTypes.Insert(0, "All Tech Types");
 
         // Get all app types from unfilteredList
-        List<string> allAppTypes = _unfilteredList.GetUniqueAppTypes();
+        List<string> allAppTypes = unfilteredList.GetUniqueAppTypes();
         allAppTypes.Insert(0, "All App Types");
 
         // Get active journal
@@ -142,7 +89,7 @@ public class HomeController : Controller
         }
 
         ViewData["Carousel"] = GetCarouselItems("Devlogs");
-        ViewData["UnfilteredList"] = _unfilteredList;
+        ViewData["UnfilteredList"] = unfilteredList;
         ViewData["FilteredList"] = _filteredList;
         ViewData["AppType"] = appType;
         ViewData["TechType"] = techType;
@@ -256,5 +203,41 @@ public class HomeController : Controller
         }
 
         return carouselList;
+    }
+    [HttpPost]
+    public async Task<IActionResult> SendEmail(string FirstName, string LastName, string Email, string PhoneNumber, string Message)
+    {
+        try
+        {
+            string yourEmail = "conormcqtx@gmail.com"; 
+            string appPassword = Environment.GetEnvironmentVariable("GMAIL_APP_PASSWORD"); ; 
+
+            // Create the email message
+            using var message = new System.Net.Mail.MailMessage();
+            message.From = new System.Net.Mail.MailAddress(yourEmail);
+            message.To.Add(yourEmail);
+            message.Subject = $"Portfolio Contact: {FirstName} {LastName}";
+            message.Body = $"Name: {FirstName} {LastName}\nEmail: {Email}\nPhone: {PhoneNumber}\n\nMessage:\n{Message}";
+            message.ReplyToList.Add(new System.Net.Mail.MailAddress(Email));
+
+            // Configure the SMTP client with Gmail settings
+            using var client = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587);
+            client.EnableSsl = true;
+            client.DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network;
+            client.UseDefaultCredentials = false;
+            client.Credentials = new System.Net.NetworkCredential(yourEmail, appPassword);
+
+            // Send the email
+            await Task.Run(() => client.Send(message));
+
+            TempData["SuccessMessage"] = "Email sent successfully!";
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending email: " + ex.Message);
+            TempData["ErrorMessage"] = "Failed to send email: " + ex.Message;
+            return RedirectToAction("Index");
+        }
     }
 }
