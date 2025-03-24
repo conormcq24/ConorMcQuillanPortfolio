@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using ConorMcQuillanPortfolio.Models;
 using ConorMcQuillanPortfolio.Services;
+using System.Text;
+using System.Net.Http;
+using Newtonsoft.Json;
+
 
 namespace ConorMcQuillanPortfolio.Controllers;
 
@@ -54,6 +58,7 @@ public class HomeController : Controller
         }
 
         var unfilteredList = await _githubService.PopulateJournalList();
+        unfilteredList.journalList = unfilteredList.journalList.OrderByDescending(item => item.journalDate).ToList();
 
         // Get journal entries from GitHub repository instead of using dummy data
         unfilteredList = await _githubService.PopulateJournalList();
@@ -209,34 +214,41 @@ public class HomeController : Controller
     {
         try
         {
-            string yourEmail = "conormcqtx@gmail.com"; 
-            string appPassword = Environment.GetEnvironmentVariable("GMAIL_APP_PASSWORD"); ; 
+            string discordWebhookUrl = Environment.GetEnvironmentVariable("DISCORD_HOOK");
+            var payload = new
+            {
+                content = $"**Portfolio Contact:** {FirstName} {LastName}\n" +
+                          $"**Email:** {Email}\n" +
+                          $"**Phone:** {PhoneNumber}\n\n" +
+                          $"**Message:**\n{Message}"
+            };
 
-            // Create the email message
-            using var message = new System.Net.Mail.MailMessage();
-            message.From = new System.Net.Mail.MailAddress(yourEmail);
-            message.To.Add(yourEmail);
-            message.Subject = $"Portfolio Contact: {FirstName} {LastName}";
-            message.Body = $"Name: {FirstName} {LastName}\nEmail: {Email}\nPhone: {PhoneNumber}\n\nMessage:\n{Message}";
-            message.ReplyToList.Add(new System.Net.Mail.MailAddress(Email));
+            // Serialize the payload to JSON
+            var jsonPayload = JsonConvert.SerializeObject(payload);
 
-            // Configure the SMTP client with Gmail settings
-            using var client = new System.Net.Mail.SmtpClient("smtp.gmail.com", 587);
-            client.EnableSsl = true;
-            client.DeliveryMethod = System.Net.Mail.SmtpDeliveryMethod.Network;
-            client.UseDefaultCredentials = false;
-            client.Credentials = new System.Net.NetworkCredential(yourEmail, appPassword);
+            // Send the message to Discord via HTTP POST
+            using (var client = new HttpClient())
+            {
+                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(discordWebhookUrl, content);
 
-            // Send the email
-            await Task.Run(() => client.Send(message));
+                // Ensure the response indicates success
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMessage"] = "Message sent successfully!";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = $"Failed to send message: {response.ReasonPhrase}";
+                }
+            }
 
-            TempData["SuccessMessage"] = "Email sent successfully!";
             return RedirectToAction("Index");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending email: " + ex.Message);
-            TempData["ErrorMessage"] = "Failed to send email: " + ex.Message;
+            _logger.LogError(ex, "Error sending message: " + ex.Message);
+            TempData["ErrorMessage"] = "Failed to send message: " + ex.Message;
             return RedirectToAction("Index");
         }
     }
