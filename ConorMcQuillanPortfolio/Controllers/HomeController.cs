@@ -247,8 +247,8 @@ public class HomeController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending message: " + ex.Message);
-            TempData["ErrorMessage"] = "Failed to send message: " + ex.Message;
+            _logger.LogError(ex, "Error sending a message: " + ex.Message);
+            TempData["ErrorMessage"] = "Failed to send a message: " + ex.Message;
             return RedirectToAction("Index");
         }
     }
