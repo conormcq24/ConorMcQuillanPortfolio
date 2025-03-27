@@ -128,6 +128,32 @@ pipeline {
                 }
             }
         }
+        stage('Build .NET MVC Portfolio Project') {
+            when {
+                expression { return env.BUILD_TEST == 'true' } 
+            }
+            steps {
+                script {
+                    echo "Starting build process for TEST environment..."
+                    
+                    // Step 1: Checkout the correct branch
+                    echo "Checking out test branch"
+                    sh "git checkout test"
+                    
+                    // Step 2: Build the .NET project
+                    echo "Building .NET MVC project"
+                    sh '''
+                        dotnet restore
+                        dotnet clean
+                        dotnet build --configuration Release
+                        dotnet publish --configuration Release --output ./publish
+                    '''
+                    
+                    // At this point we'll check if the build was successful
+                    echo "Build completed successfully. Ready to create Docker image."
+                }
+            }
+        }
     }
     post {
         always {
