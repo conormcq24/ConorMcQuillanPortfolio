@@ -1,7 +1,7 @@
 pipeline {
     agent any
     triggers {
-        githubPush(branches: ['test'])  // Only trigger for the test branch
+        githubPush()  // Only trigger for the test branch
     }
     environment {
         DOCKER_REGISTRY = 'localhost'
