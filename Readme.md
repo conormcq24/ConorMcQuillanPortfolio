@@ -1,7 +1,7 @@
 # Project Setup
 
 ## Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Required for local development on Windows/Mac)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Required for local development on Windows/Mac) a
 - All docker commands should be run in the project root directory (where the Dockerfile is located)
 - You will need a system environment variable called GITHUB_REPO_ACCESS that contains a git personal access 
   token to my obsidian notes project to pull journal entries
