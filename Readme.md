@@ -1,4 +1,4 @@
-# Project Setup
+# Project Setup a
 
 ## Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Required for local development on Windows/Mac)
