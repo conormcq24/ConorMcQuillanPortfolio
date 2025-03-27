@@ -63,7 +63,7 @@ pipeline {
                     def discordMessage = """
                     {
                         "username": "Jenkins",
-                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png"
+                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
                         "embeds": [{
                             "title": "Build Process Started",
                             "description": "A pull request from **${safeSourceBranch}** branch to **${safeTargetBranch}** branch has started a build process for ${environment} environment",
