@@ -15,6 +15,11 @@ namespace ConorMcQuillanPortfolio.Services
         private readonly string _repoOwner = "conormcq24";
         private readonly string _repoName = "MyObsidianNotes";
 
+
+        private JournalList _cachedJournalList = new JournalList();
+        private bool _journalsLoaded = false;
+        private bool _imagesDownloaded = false;
+
         public GithubService(ILogger<GithubService> logger, HttpClient httpClient, IWebHostEnvironment webHostEnvironment)
         {
             _logger = logger;
@@ -70,13 +75,16 @@ namespace ConorMcQuillanPortfolio.Services
 
         public async Task<bool> DownloadImagesAsync()
         {
+            if (_imagesDownloaded)
+            {
+                return true;
+            }
             try
             {
                 if (!await VerifyAuthenticationAsync())
                 {
                     return false;
                 }
-
                 var response = await _httpClient.GetAsync($"repos/{_repoOwner}/{_repoName}/contents/Notes/images/Notes");
                 if (!response.IsSuccessStatusCode)
                 {
@@ -84,19 +92,15 @@ namespace ConorMcQuillanPortfolio.Services
                         response.StatusCode);
                     return false;
                 }
-
                 var contentJson = await response.Content.ReadAsStringAsync();
                 var files = JsonSerializer.Deserialize<List<GitHubContent>>(contentJson,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
                 if (files == null || !files.Any())
                 {
                     _logger.LogInformation("No files found in the images folder");
                     return true;
                 }
-
                 var imagesPath = Path.Combine(_webHostEnvironment.WebRootPath, "ObsidianImages");
-
                 if (Directory.Exists(imagesPath))
                 {
                     var existingFiles = Directory.GetFiles(imagesPath);
@@ -116,7 +120,6 @@ namespace ConorMcQuillanPortfolio.Services
                 {
                     Directory.CreateDirectory(imagesPath);
                 }
-
                 foreach (var file in files)
                 {
                     if (file.Type != "file" || string.IsNullOrEmpty(file.Download_url))
@@ -124,17 +127,16 @@ namespace ConorMcQuillanPortfolio.Services
                         continue;
                     }
 
-                    using (var downloadClient = new HttpClient())
-                    {
-                        var fileBytes = await downloadClient.GetByteArrayAsync(file.Download_url);
-                        var filePath = Path.Combine(imagesPath, file.Name);
-                        await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
-                        _logger.LogInformation("Downloaded file {FileName}", file.Name);
-                    }
+                    // Use the injected _httpClient instead of creating a new one
+                    var fileBytes = await _httpClient.GetByteArrayAsync(file.Download_url);
+                    var filePath = Path.Combine(imagesPath, file.Name);
+                    await System.IO.File.WriteAllBytesAsync(filePath, fileBytes);
+                    _logger.LogInformation("Downloaded file {FileName}", file.Name);
                 }
-
                 _logger.LogInformation("Successfully downloaded {Count} files to ObsidianImages folder",
                     files.Count(f => f.Type == "file"));
+
+                _imagesDownloaded = true;
                 return true;
             }
             catch (Exception ex)
@@ -146,6 +148,11 @@ namespace ConorMcQuillanPortfolio.Services
 
         public async Task<JournalList> PopulateJournalList()
         {
+            if (_journalsLoaded)
+            {
+                return _cachedJournalList;
+            }
+
             var journalList = new JournalList();
             try
             {
@@ -329,6 +336,10 @@ namespace ConorMcQuillanPortfolio.Services
                         return journalList;
                     }
                 }
+
+                _cachedJournalList = journalList;
+                _journalsLoaded = true;
+
                 return journalList;
             }
             catch (Exception ex)
