@@ -117,7 +117,7 @@ pipeline {
                         dotnet restore
                         dotnet clean
                         dotnet build --configuration Release
-                        dotnet publish --configuration Release --output ./publish
+                        dotnet publish ./ConorMcQuillanPortfolio/ConorMcQuillanPortfolio.csproj --configuration Release --output ./publish
                     '''
                     
                     echo "Build completed successfully. Ready to create Docker image."
