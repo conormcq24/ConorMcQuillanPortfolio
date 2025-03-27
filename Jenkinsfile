@@ -47,7 +47,7 @@ pipeline {
             steps {
                 script {
                     // Determine which webhook to use based on the branch
-                    def webhookUrl = env.BRANCH_NAME == 'test' ? env.DISCORD_WEBHOOK_TEST : env.DISCORD_WEBHOOK_PROD
+                    def webhookUrl = "https://discordapp.com/api/webhooks/1354215301033759092/_88-RaCajTnr8dA4GJUUqIpQVJnbF2t3n9nq-2VBHbl-ugZw3l7m4_UJ3tZY1fL7GNW1"
                     
                     // Create the discord message payload
                     def discordMessage = """{
