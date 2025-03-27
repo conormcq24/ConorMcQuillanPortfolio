@@ -14,26 +14,45 @@ pipeline {
                     // Get source branch info from commit message (if available)
                     def sourceBranch = "unknown"
                     def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
+                    echo "Commit message: ${commitMsg}"
                     
-                    // Try to extract source branch from merge commit message
+                    // Extract source branch from merge commit message without using regex Matcher
                     // Typical format: "Merge pull request #X from source/branch"
-                    if (commitMsg.contains("Merge pull request")) {
-                        def matcher = commitMsg =~ /from\s+(\S+)/
-                        if (matcher.find()) {
-                            sourceBranch = matcher.group(1).tokenize('/').last()
+                    if (commitMsg.contains("Merge pull request") && commitMsg.contains("from ")) {
+                        // Split by "from " and take the second part
+                        def fromParts = commitMsg.split("from ")
+                        if (fromParts.length > 1) {
+                            // Take the branch name part and handle possible newlines
+                            def branchPath = fromParts[1].trim().split("\\s")[0]
+                            // Extract the branch name (last part after any slashes)
+                            sourceBranch = branchPath.tokenize('/').last()
                         }
                     }
                     
-                    // Extract PR URL if possible
+                    // Extract PR URL if possible without using regex
                     def prUrl = "Not available"
-                    def prMatcher = commitMsg =~ /#(\d+)/
-                    if (prMatcher.find()) {
-                        def prNumber = prMatcher.group(1)
-                        def repoUrl = sh(script: 'git config --get remote.origin.url', returnStdout: true).trim()
-                        // Convert SSH URL to HTTPS if needed
-                        repoUrl = repoUrl.replaceAll(/git@github.com:/, 'https://github.com/')
-                        repoUrl = repoUrl.replaceAll(/\.git$/, '')
-                        prUrl = "${repoUrl}/pull/${prNumber}"
+                    if (commitMsg.contains("#")) {
+                        def hashParts = commitMsg.split("#")
+                        if (hashParts.length > 1) {
+                            // Extract PR number, handling possible non-digit characters after it
+                            def prNumStr = hashParts[1].trim()
+                            def prNum = ""
+                            for (int i = 0; i < prNumStr.length(); i++) {
+                                if (prNumStr.charAt(i).isDigit()) {
+                                    prNum += prNumStr.charAt(i)
+                                } else {
+                                    break
+                                }
+                            }
+                            
+                            if (prNum) {
+                                def repoUrl = sh(script: 'git config --get remote.origin.url', returnStdout: true).trim()
+                                // Convert SSH URL to HTTPS if needed
+                                repoUrl = repoUrl.replace('git@github.com:', 'https://github.com/')
+                                repoUrl = repoUrl.replace('.git', '')
+                                prUrl = "${repoUrl}/pull/${prNum}"
+                            }
+                        }
                     }
                     
                     // Store the variables for later use
@@ -41,8 +60,11 @@ pipeline {
                     env.SOURCE_BRANCH = sourceBranch
                     env.PR_URL = prUrl
                     
+                    echo "Source branch: ${sourceBranch}"
+                    echo "PR URL: ${prUrl}"
+                    
                     // Only proceed for monitored branches
-                    if (targetBranch in ['test', 'main']) {
+                    if (targetBranch == 'test' || targetBranch == 'main') {
                         echo "This is a monitored branch: ${targetBranch}"
                     } else {
                         echo "This is not a monitored branch. Skipping notification."
@@ -55,7 +77,7 @@ pipeline {
         
         stage('Send Discord Notification') {
             when {
-                expression { return env.TARGET_BRANCH in ['test', 'main'] }
+                expression { return env.TARGET_BRANCH == 'test' || env.TARGET_BRANCH == 'main' }
             }
             steps {
                 script {
@@ -69,24 +91,29 @@ pipeline {
                     def color = env.TARGET_BRANCH == 'test' ? '5793266' : '15158332'
                     def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
                     
+                    // Escape single quotes for shell command
+                    def safeSourceBranch = env.SOURCE_BRANCH.replace("'", "\\'")
+                    def safeTargetBranch = env.TARGET_BRANCH.replace("'", "\\'")
+                    def safePrUrl = env.PR_URL.replace("'", "\\'")
+                    
                     def discordMessage = """
                     {
                         "embeds": [{
                             "title": "Build Process Started",
-                            "description": "A pull request from **${env.SOURCE_BRANCH}** branch to **${env.TARGET_BRANCH}** branch has started a build process for ${environment} environment",
+                            "description": "A pull request from **${safeSourceBranch}** branch to **${safeTargetBranch}** branch has started a build process for ${environment} environment",
                             "color": ${color},
                             "fields": [
                                 {
                                     "name": "Source Branch",
-                                    "value": "${env.SOURCE_BRANCH}"
+                                    "value": "${safeSourceBranch}"
                                 },
                                 {
                                     "name": "Target Branch",
-                                    "value": "${env.TARGET_BRANCH}"
+                                    "value": "${safeTargetBranch}"
                                 },
                                 {
                                     "name": "Pull Request URL",
-                                    "value": "${env.PR_URL}"
+                                    "value": "${safePrUrl}"
                                 }
                             ],
                             "footer": {
@@ -97,11 +124,14 @@ pipeline {
                     }
                     """
                     
-                    // Send the webhook notification
+                    // Write the message to a file to avoid shell escaping issues
+                    writeFile file: 'discord_payload.json', text: discordMessage
+                    
+                    // Send the webhook notification using the file
                     sh """
                         curl -X POST "${webhookUrl}" \\
                         -H "Content-Type: application/json" \\
-                        -d '${discordMessage}'
+                        -d @discord_payload.json
                     """
                     
                     echo "Discord notification sent for build in ${environment} environment"
