@@ -13,27 +13,16 @@ pipeline {
         stage('Detect PR Merge to Test') {
             steps {
                 script {
-                    // Check that the trigger branch is 'test'
-                    def targetBranch = env.GIT_BRANCH ? env.GIT_BRANCH.tokenize('/').last() : "unknown"
-                    echo "Build triggered for branch: ${targetBranch}"
+                    // Ensure we're on the test branch
+                    sh "git checkout test"
                     
-                    if (targetBranch != 'test') {
-                        echo "This build was not triggered for the 'test' branch. Aborting."
-                        currentBuild.result = 'ABORTED'
-                        error("Build stopped: Not targeting test branch")
-                        return
-                    }
-                    
-                    // Set TARGET_BRANCH to 'test'
-                    env.TARGET_BRANCH = 'test'
-                    
-                    // Now that we've confirmed we're on the test branch, get the commit message
+                    // Get commit message to extract source branch
                     def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
                     echo "Commit message: ${commitMsg}"
                     
                     // Check if this is a merge commit from a PR
                     if (!commitMsg.contains("Merge pull request")) {
-                        echo "This is not a PR merge commit. Aborting."
+                        echo "This is not a PR merge commit. Skipping build process."
                         currentBuild.result = 'ABORTED'
                         error("Build stopped: Not a PR merge commit")
                         return
@@ -61,6 +50,7 @@ pipeline {
                 }
             }
         }
+        
         stage('Notify Discord of Test Build Process') {
             steps {
                 script {
@@ -115,6 +105,7 @@ pipeline {
                 }
             }
         }
+        
         stage('Build .NET MVC Test Project') {
             steps {
                 script {
