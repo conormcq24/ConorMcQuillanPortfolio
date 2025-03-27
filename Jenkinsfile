@@ -2,8 +2,6 @@ pipeline {
     agent any
     triggers {
         githubPush()
-        // Add scheduled triggers for midnight and 5am
-        cron('30 18 * * *')
     }
     environment {
         DOCKER_REGISTRY = 'localhost'
@@ -15,28 +13,7 @@ pipeline {
         PROD_PORT = '5002'
     }
     stages {
-        // This stage determines what caused the build process to start
-        stage('Detect Trigger Type') {
-            steps {
-                script {
-                    def isCronTrigger = currentBuild.getBuildCauses().toString().contains('hudson.triggers.TimerTrigger')
-                    env.IS_SCHEDULED_RUN = isCronTrigger.toString()
-                    
-                    if (isCronTrigger) {
-                        echo "This is a scheduled run (cron trigger)"
-                    } else {
-                        echo "This is a webhook trigger"
-                    }
-                }
-            }
-        }
-        
-        // This stage only runs if IS_SCHEDULED_RUN is false
-        // It detects if the trigger is a merge to test or main and sends the appropriate Discord message
-        stage('Notify Discord of Trigger Based Build') {
-            when {
-                expression { return env.IS_SCHEDULED_RUN == 'false' }
-            }
+        stage('Detect PR Merge') {
             steps {
                 script {
                     // Get target branch (the branch that received the merge)
@@ -55,11 +32,18 @@ pipeline {
                     def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
                     echo "Commit message: ${commitMsg}"
                     
-                    // Extract source branch - simpler approach
+                    // Check if this is a merge commit from a PR
+                    if (!commitMsg.contains("Merge pull request")) {
+                        echo "This is not a PR merge commit. Skipping build process."
+                        currentBuild.result = 'ABORTED'
+                        error("Build stopped: Not a PR merge commit")
+                        return
+                    }
+                    
+                    // Extract source branch
                     def sourceBranch = "unknown"
                     
-                    // Check if this is a merge commit from a PR
-                    if (commitMsg.contains("Merge pull request") && commitMsg.contains("from ")) {
+                    if (commitMsg.contains("from ")) {
                         // Get everything after "from "
                         def afterFrom = commitMsg.substring(commitMsg.indexOf("from ") + 5)
                         // Get the first word which should be the branch
@@ -77,104 +61,74 @@ pipeline {
                     env.SOURCE_BRANCH = sourceBranch
                     env.TARGET_BRANCH = targetBranch
                     
-                    // Discord webhook URL
-                    def webhookUrl = "https://discordapp.com/api/webhooks/1354215301033759092/_88-RaCajTnr8dA4GJUUqIpQVJnbF2t3n9nq-2VBHbl-ugZw3l7m4_UJ3tZY1fL7GNW1"
-                    def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
-                    
-                    // For webhook triggers, create the PR merge message
-                    def environment = targetBranch == 'main' ? "production" : "test"
-                    def color = targetBranch == 'test' ? '5793266' : '15158332'
-                    
-                    // Escape single quotes for shell command
-                    def safeSourceBranch = sourceBranch.replace("'", "\\'")
-                    def safeTargetBranch = targetBranch.replace("'", "\\'")
-                    
-                    def discordMessage = """
-                    {
-                        "username": "Jenkins",
-                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
-                        "embeds": [{
-                            "title": "Build Process Started",
-                            "description": "A pull request from **${safeSourceBranch}** branch to **${safeTargetBranch}** branch has started a build process for ${environment} environment",
-                            "color": ${color},
-                            "fields": [
-                                {
-                                    "name": "Source Branch",
-                                    "value": "${safeSourceBranch}"
-                                },
-                                {
-                                    "name": "Target Branch",
-                                    "value": "${safeTargetBranch}"
-                                }
-                            ],
-                            "footer": {
-                                "text": "Jenkins CI/CD Notification"
-                            },
-                            "timestamp": "${timestamp}"
-                        }]
+                    // Set which environment to build based on target branch
+                    if (targetBranch == 'test') {
+                        env.BUILD_TEST = 'true'
+                        env.BUILD_PROD = 'false'
+                    } else if (targetBranch == 'main') {
+                        env.BUILD_TEST = 'false'
+                        env.BUILD_PROD = 'true'
                     }
-                    """
-                    
-                    // Write the message to a file to avoid shell escaping issues
-                    writeFile file: 'discord_payload.json', text: discordMessage
-                    
-                    // Send the webhook notification using the file
-                    sh '''
-                        curl -X POST "''' + webhookUrl + '''" \\
-                        -H "Content-Type: application/json" \\
-                        -d @discord_payload.json
-                    '''
-                    
-                    echo "Discord notification sent for build in ${environment} environment"
                 }
             }
         }
-        
-        // This stage only runs if IS_SCHEDULED_RUN is true
-        // It sends a Discord message stating both prod and test are going through a scheduled redeploy
-        stage('Notify Discord of Schedule Based Build') {
-            when {
-                expression { return env.IS_SCHEDULED_RUN == 'true' }
-            }
+        stage('Notify Discord of Build Process') {
             steps {
                 script {
-                    // Discord webhook URL
-                    def webhookUrl = "https://discordapp.com/api/webhooks/1354215301033759092/_88-RaCajTnr8dA4GJUUqIpQVJnbF2t3n9nq-2VBHbl-ugZw3l7m4_UJ3tZY1fL7GNW1"
-                    def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
-                    
-                    // For scheduled runs, create the nightly refresh message
-                    def discordMessage = """
-                    {
-                        "username": "Jenkins",
-                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
-                        "embeds": [{
-                            "title": "Scheduled Build",
-                            "description": "Performing a scheduled refresh for production and test environment",
-                            "color": 3447003,
-                            "footer": {
-                                "text": "Jenkins CI/CD Notification"
-                            },
-                            "timestamp": "${timestamp}"
-                        }]
+                    // Get the webhook URL from credentials
+                    withCredentials([string(credentialsId: 'discord-webhook-url', variable: 'DISCORD_WEBHOOK_URL')]) {
+                        def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
+                        
+                        // Determine environment name based on target branch
+                        def environment = env.TARGET_BRANCH == 'main' ? "production" : "test"
+                        def color = env.TARGET_BRANCH == 'test' ? '5793266' : '15158332'
+                        
+                        // Escape single quotes for shell command
+                        def safeSourceBranch = env.SOURCE_BRANCH.replace("'", "\\'")
+                        def safeTargetBranch = env.TARGET_BRANCH.replace("'", "\\'")
+                        
+                        def discordMessage = """
+                        {
+                            "username": "Jenkins",
+                            "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                            "embeds": [{
+                                "title": "Build Process Started",
+                                "description": "Branch **${safeSourceBranch}** merged into Branch **${safeTargetBranch}** beginning build process for ${environment} environment",
+                                "color": ${color},
+                                "fields": [
+                                    {
+                                        "name": "Source Branch",
+                                        "value": "${safeSourceBranch}"
+                                    },
+                                    {
+                                        "name": "Target Branch",
+                                        "value": "${safeTargetBranch}"
+                                    }
+                                ],
+                                "footer": {
+                                    "text": "Jenkins CI/CD Notification"
+                                },
+                                "timestamp": "${timestamp}"
+                            }]
+                        }
+                        """
+                        
+                        // Write the message to a file to avoid shell escaping issues
+                        writeFile file: 'discord_payload.json', text: discordMessage
+                        
+                        // Send the webhook notification using the file
+                        sh '''
+                            curl -X POST "${DISCORD_WEBHOOK_URL}" \\
+                            -H "Content-Type: application/json" \\
+                            -d @discord_payload.json
+                        '''
+                        
+                        echo "Discord notification sent for build in ${environment} environment"
                     }
-                    """
-                    
-                    // Write the message to a file to avoid shell escaping issues
-                    writeFile file: 'discord_payload.json', text: discordMessage
-                    
-                    // Send the webhook notification using the file
-                    sh '''
-                        curl -X POST "''' + webhookUrl + '''" \\
-                        -H "Content-Type: application/json" \\
-                        -d @discord_payload.json
-                    '''
-                    
-                    echo "Discord notification sent for scheduled run"
                 }
             }
         }
     }
-    
     post {
         always {
             cleanWs()
