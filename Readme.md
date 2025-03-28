@@ -1,7 +1,5 @@
 # Project Details
 
-## Development Workflow
-
 #### Local Environment Development: 
 
 ##### Requirements:
