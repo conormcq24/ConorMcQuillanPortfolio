@@ -130,7 +130,7 @@ pipeline {
                 script{
                     echo "Creating Docker image for test environment"
 
-                    withCredentials([
+                    withCredentials([ 
                         string(credentialsId: 'discord-inbox-url', variable: 'DISCORD_PORTFOLIO_INBOX_URL'),
                         string(credentialsId: 'github-repo-access', variable: 'GITHUB_REPO_ACCESS')
                     ]) {
@@ -156,11 +156,70 @@ pipeline {
                 }
             }
         }
+        
+        stage('Notify Discord of Completion'){
+            steps {
+                script {
+                    def buildStatus = currentBuild.result ?: 'SUCCESS'  // Get the result of the build
+                    def color = buildStatus == 'SUCCESS' ? '5793266' : '15158332'  // Green for success, red for failure
+                    def title = buildStatus == 'SUCCESS' ? 'Test Build Completed' : 'Test Build Failed'
+                    def description = buildStatus == 'SUCCESS' ? 
+                                      "The build for the test environment has completed successfully." : 
+                                      "The build for the test environment has failed."
+
+                    def discordMessage = """
+                    {
+                        "username": "Jenkins",
+                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                        "embeds": [{
+                            "title": "${title}",
+                            "description": "${description}",
+                            "color": ${color},
+                            "fields": [
+                                {
+                                    "name": "Build Result",
+                                    "value": "${buildStatus}"
+                                },
+                                {
+                                    "name": "Source Branch",
+                                    "value": "${env.SOURCE_BRANCH}"
+                                },
+                                {
+                                    "name": "Target Branch",
+                                    "value": "test"
+                                }
+                            ],
+                            "footer": {
+                                "text": "Jenkins CI/CD Notification"
+                            },
+                            "timestamp": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))}"
+                        }]
+                    }
+                    """
+
+                    if (buildStatus == 'FAILURE') {
+                        def consoleOutput = sh(script: 'cat ${BUILD_LOG_FILE}', returnStdout: true).trim()
+                        discordMessage = discordMessage.replace('}', ", \"fields\": [{ \"name\": \"Console Output\", \"value\": \"```${consoleOutput}```\" }]} }")
+                    }
+
+                    // Get the webhook URL from credentials and send the Discord message
+                    withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
+                        writeFile file: 'discord_payload.json', text: discordMessage
+                        sh '''
+                            curl -X POST "${DISCORD_BUILD_STATUS}" \\
+                            -H "Content-Type: application/json" \\
+                            -d @discord_payload.json
+                        '''
+                    }
+                    echo "Discord notification sent for build completion."
+                }
+            }
+        }
     }
     post {
         always {
             echo "Cleaning workspace..."
-            cleanWs()  // This will clean up the workspace after the pipeline finishes
+            cleanWs() 
         }
     }
 }
