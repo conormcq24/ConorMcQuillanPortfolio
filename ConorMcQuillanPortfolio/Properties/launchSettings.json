@@ -1,28 +1,5 @@
 {
   "profiles": {
-    "Docker": {
-      "commandName": "Docker",
-      "launchBrowser": true,
-      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
-      "publishAllPorts": true,
-      "useSSL": true,
-      "environmentVariables": {
-        "ASPNETCORE_URLS": "http://+:8080;https://+:8081"
-      },
-      "dockerOptions": {
-        "name": "PortfolioTestApp",
-        "portMappings": [
-          {
-            "hostPort": 8080,
-            "containerPort": 8080
-          },
-          {
-            "hostPort": 8081,
-            "containerPort": 8081
-          }
-        ]
-      }
-    },
     "portfolio-dev-launch": {
       "commandName": "Project",
       "launchBrowser": true,
