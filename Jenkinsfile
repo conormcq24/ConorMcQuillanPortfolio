@@ -157,4 +157,10 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            echo "Cleaning workspace..."
+            cleanWs()  // This will clean up the workspace after the pipeline finishes
+        }
+    }
 }
