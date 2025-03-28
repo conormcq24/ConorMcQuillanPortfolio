@@ -215,7 +215,6 @@ public class HomeController : Controller
         try
         {
             string discordWebhookUrl = Environment.GetEnvironmentVariable("DISCORD_PORTFOLIO_INBOX_URL");
-            string purposeful error
             var payload = new
             {
                 content = $"**Portfolio Contact:** {FirstName} {LastName}\n" +
