@@ -13,14 +13,12 @@ pipeline {
         stage('Detect PR Merge to Test') {
             steps {
                 script {
-                    // Ensure we're on the test branch
+                    // Existing PR merge detection logic
                     sh "git checkout test"
                     
-                    // Get commit message to extract source branch
                     def commitMsg = sh(script: 'git log -1 --pretty=%B', returnStdout: true).trim()
                     echo "Commit message: ${commitMsg}"
                     
-                    // Check if this is a merge commit from a PR
                     if (!commitMsg.contains("Merge pull request")) {
                         echo "This is not a PR merge commit. Skipping build process."
                         currentBuild.result = 'ABORTED'
@@ -28,15 +26,11 @@ pipeline {
                         return
                     }
                     
-                    // Extract source branch
                     def sourceBranch = "unknown"
                     
                     if (commitMsg.contains("from ")) {
-                        // Get everything after "from "
                         def afterFrom = commitMsg.substring(commitMsg.indexOf("from ") + 5)
-                        // Get the first word which should be the branch
                         def branchFullPath = afterFrom.split()[0]
-                        // Get just the branch name (after last slash if present)
                         sourceBranch = branchFullPath.contains("/") ? 
                             branchFullPath.substring(branchFullPath.lastIndexOf("/") + 1) : 
                             branchFullPath
@@ -45,7 +39,6 @@ pipeline {
                     echo "Detected source branch: ${sourceBranch}"
                     echo "Target branch: test"
                     
-                    // Store for potential later use
                     env.SOURCE_BRANCH = sourceBranch
                 }
             }
@@ -54,14 +47,10 @@ pipeline {
         stage('Notify Discord of Test Build Process') {
             steps {
                 script {
-                    // Get the webhook URL from credentials
                     withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
                         def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
                         
-                        // Blue color for test environment
                         def color = '5793266'
-                        
-                        // Escape single quotes for shell command
                         def safeSourceBranch = env.SOURCE_BRANCH.replace("'", "\\'")
                         
                         def discordMessage = """
@@ -90,10 +79,8 @@ pipeline {
                         }
                         """
                         
-                        // Write the message to a file to avoid shell escaping issues
                         writeFile file: 'discord_payload.json', text: discordMessage
                         
-                        // Send the webhook notification using the file
                         sh '''
                             curl -X POST "${DISCORD_BUILD_STATUS}" \\
                             -H "Content-Type: application/json" \\
@@ -111,8 +98,6 @@ pipeline {
                 script {
                     echo "Starting build process for TEST environment..."
                     
-                    // Build the .NET project
-                    echo "Building .NET MVC project"
                     sh '''
                         dotnet restore
                         dotnet clean
@@ -157,10 +142,117 @@ pipeline {
             }
         }
     }
+    
     post {
+        success {
+            script {
+                withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
+                    def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
+                    
+                    // Green color for success
+                    def color = '3066993'
+                    
+                    def successMessage = """
+                    {
+                        "username": "Jenkins",
+                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                        "embeds": [{
+                            "title": "Test Build Process Successful",
+                            "description": "Branch **${env.SOURCE_BRANCH}** successfully merged into **test** and deployed",
+                            "color": ${color},
+                            "fields": [
+                                {
+                                    "name": "Source Branch",
+                                    "value": "${env.SOURCE_BRANCH}"
+                                },
+                                {
+                                    "name": "Status",
+                                    "value": "✅ Deployment Completed"
+                                }
+                            ],
+                            "footer": {
+                                "text": "Jenkins CI/CD Notification"
+                            },
+                            "timestamp": "${timestamp}"
+                        }]
+                    }
+                    """
+                    
+                    writeFile file: 'discord_success_payload.json', text: successMessage
+                    
+                    sh '''
+                        curl -X POST "${DISCORD_BUILD_STATUS}" \\
+                        -H "Content-Type: application/json" \\
+                        -d @discord_success_payload.json
+                    '''
+                }
+            }
+        }
+        
+        failure {
+            script {
+                withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
+                    def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
+                    
+                    // Red color for failure
+                    def color = '15158332'
+                    
+                    // Capture console output, but limit to first 3000 characters to avoid Discord message size limits
+                    def consoleOutput = sh(
+                        script: 'cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log | head -c 3000',
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Escape special characters in console output
+                    consoleOutput = consoleOutput.replace("\\", "\\\\")
+                                                 .replace("\"", "\\\"")
+                                                 .replace("\n", "\\n")
+                    
+                    def failureMessage = """
+                    {
+                        "username": "Jenkins",
+                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                        "embeds": [{
+                            "title": "Test Build Process Failed ❌",
+                            "description": "Build failed for branch **${env.SOURCE_BRANCH}** merged into **test**",
+                            "color": ${color},
+                            "fields": [
+                                {
+                                    "name": "Source Branch",
+                                    "value": "${env.SOURCE_BRANCH}"
+                                },
+                                {
+                                    "name": "Status",
+                                    "value": "❌ Deployment Failed"
+                                },
+                                {
+                                    "name": "Console Output",
+                                    "value": "[View Full Build Log](${BUILD_URL}console)"
+                                }
+                            ],
+                            "footer": {
+                                "text": "Full build log available in Jenkins",
+                                "icon_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png"
+                            },
+                            "timestamp": "${timestamp}"
+                        }]
+                    }
+                    """
+                    
+                    writeFile file: 'discord_failure_payload.json', text: failureMessage
+                    
+                    sh '''
+                        curl -X POST "${DISCORD_BUILD_STATUS}" \\
+                        -H "Content-Type: application/json" \\
+                        -d @discord_failure_payload.json
+                    '''
+                }
+            }
+        }
+        
         always {
             echo "Cleaning workspace..."
-            cleanWs()  // This will clean up the workspace after the pipeline finishes
+            cleanWs() 
         }
     }
 }
