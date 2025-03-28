@@ -55,7 +55,7 @@ pipeline {
             steps {
                 script {
                     // Get the webhook URL from credentials
-                    withCredentials([string(credentialsId: 'discord-webhook-url', variable: 'DISCORD_WEBHOOK_URL')]) {
+                    withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
                         def timestamp = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
                         
                         // Blue color for test environment
@@ -95,7 +95,7 @@ pipeline {
                         
                         // Send the webhook notification using the file
                         sh '''
-                            curl -X POST "${DISCORD_WEBHOOK_URL}" \\
+                            curl -X POST "${DISCORD_BUILD_STATUS}" \\
                             -H "Content-Type: application/json" \\
                             -d @discord_payload.json
                         '''
@@ -117,7 +117,7 @@ pipeline {
                         dotnet restore
                         dotnet clean
                         dotnet build --configuration Release
-                        dotnet publish --configuration Release --output ./publish
+                        dotnet publish ./ConorMcQuillanPortfolio/ConorMcQuillanPortfolio.csproj --configuration Release --output ./publish
                     '''
                     
                     echo "Build completed successfully. Ready to create Docker image."
@@ -125,12 +125,42 @@ pipeline {
             }
         }
         
-        // You can add Docker image creation and deployment stages here
+        stage('Create and Deploy Docker Image'){
+            steps {
+                script{
+                    echo "Creating Docker image for test environment"
+
+                    withCredentials([
+                        string(credentialsId: 'discord-inbox-url', variable: 'DISCORD_PORTFOLIO_INBOX_URL'),
+                        string(credentialsId: 'github-repo-access', variable: 'GITHUB_REPO_ACCESS')
+                    ]) {
+                        sh '''
+                        # Build the Docker image with explicit Dockerfile path
+                        docker build -t ''' + env.DOCKER_REGISTRY + '''/portfolio:test -f ./ConorMcQuillanPortfolio/Dockerfile ./publish
+                        
+                        # Stop any existing container
+                        docker stop ''' + env.TEST_CONTAINER_NAME + ''' || true
+                        docker rm ''' + env.TEST_CONTAINER_NAME + ''' || true
+                        
+                        # Run the new container
+                        docker run -d --name ''' + env.TEST_CONTAINER_NAME + ''' \
+                            -p ''' + env.TEST_PORT + ''':80 \
+                            -e ASPNETCORE_ENVIRONMENT=Staging \
+                            -e DISCORD_PORTFOLIO_INBOX_URL="''' + DISCORD_PORTFOLIO_INBOX_URL + '''" \
+                            -e GITHUB_REPO_ACCESS="''' + GITHUB_REPO_ACCESS + '''" \
+                            ''' + env.DOCKER_REGISTRY + '''/portfolio:test
+                        '''
+                    }
+                    
+                    echo "Docker container for test environment is now running."
+                }
+            }
+        }
     }
-    
     post {
         always {
-            cleanWs()
+            echo "Cleaning workspace..."
+            cleanWs()  // This will clean up the workspace after the pipeline finishes
         }
     }
 }
