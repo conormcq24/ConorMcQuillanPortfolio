@@ -158,9 +158,4 @@ pipeline {
             }
         }
     }
-    
-    post {
-        always {
-        }
-    }
 }
