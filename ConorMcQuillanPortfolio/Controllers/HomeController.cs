@@ -215,6 +215,7 @@ public class HomeController : Controller
         try
         {
             string discordWebhookUrl = Environment.GetEnvironmentVariable("DISCORD_PORTFOLIO_INBOX_URL");
+            string testingbadoutput
             var payload = new
             {
                 content = $"**Portfolio Contact:** {FirstName} {LastName}\n" +
