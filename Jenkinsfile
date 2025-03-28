@@ -157,69 +157,111 @@ pipeline {
             }
         }
         
-        stage('Notify Discord of Completion'){
-            steps {
-                script {
-                    def buildStatus = currentBuild.result ?: 'SUCCESS'  // Get the result of the build
-                    def color = buildStatus == 'SUCCESS' ? '5793266' : '15158332'  // Green for success, red for failure
-                    def title = buildStatus == 'SUCCESS' ? 'Test Build Completed' : 'Test Build Failed'
-                    def description = buildStatus == 'SUCCESS' ? 
-                                      "The build for the test environment has completed successfully." : 
-                                      "The build for the test environment has failed."
+    post {
+        success {
+            script {
+                def buildStatus = 'SUCCESS'
+                def color = '5793266'  // Green for success
+                def title = 'Test Build Completed'
+                def description = "The build for the test environment has completed successfully."
 
-                    def discordMessage = """
-                    {
-                        "username": "Jenkins",
-                        "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
-                        "embeds": [{
-                            "title": "${title}",
-                            "description": "${description}",
-                            "color": ${color},
-                            "fields": [
-                                {
-                                    "name": "Build Result",
-                                    "value": "${buildStatus}"
-                                },
-                                {
-                                    "name": "Source Branch",
-                                    "value": "${env.SOURCE_BRANCH}"
-                                },
-                                {
-                                    "name": "Target Branch",
-                                    "value": "test"
-                                }
-                            ],
-                            "footer": {
-                                "text": "Jenkins CI/CD Notification"
+                def discordMessage = """
+                {
+                    "username": "Jenkins",
+                    "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                    "embeds": [{
+                        "title": "${title}",
+                        "description": "${description}",
+                        "color": ${color},
+                        "fields": [
+                            {
+                                "name": "Build Result",
+                                "value": "${buildStatus}"
                             },
-                            "timestamp": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))}"
-                        }]
-                    }
-                    """
-
-                    if (buildStatus == 'FAILURE') {
-                        def consoleOutput = sh(script: 'cat ${BUILD_LOG_FILE}', returnStdout: true).trim()
-                        discordMessage = discordMessage.replace('}', ", \"fields\": [{ \"name\": \"Console Output\", \"value\": \"```${consoleOutput}```\" }]} }")
-                    }
-
-                    // Get the webhook URL from credentials and send the Discord message
-                    withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
-                        writeFile file: 'discord_payload.json', text: discordMessage
-                        sh '''
-                            curl -X POST "${DISCORD_BUILD_STATUS}" \\
-                            -H "Content-Type: application/json" \\
-                            -d @discord_payload.json
-                        '''
-                    }
-                    echo "Discord notification sent for build completion."
+                            {
+                                "name": "Source Branch",
+                                "value": "${env.SOURCE_BRANCH}"
+                            },
+                            {
+                                "name": "Target Branch",
+                                "value": "test"
+                            }
+                        ],
+                        "footer": {
+                            "text": "Jenkins CI/CD Notification"
+                        },
+                        "timestamp": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))}"
+                    }]
                 }
+                """
+
+                withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
+                    writeFile file: 'discord_payload.json', text: discordMessage
+                    sh '''
+                        curl -X POST "${DISCORD_BUILD_STATUS}" \\
+                        -H "Content-Type: application/json" \\
+                        -d @discord_payload.json
+                    '''
+                }
+                echo "Discord notification sent for build completion."
             }
         }
-    }
-    post {
+
+        failure {
+            script {
+                def buildStatus = 'FAILURE'
+                def color = '15158332'  // Red for failure
+                def title = 'Test Build Failed'
+                def description = "The build for the test environment has failed."
+
+                def discordMessage = """
+                {
+                    "username": "Jenkins",
+                    "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                    "embeds": [{
+                        "title": "${title}",
+                        "description": "${description}",
+                        "color": ${color},
+                        "fields": [
+                            {
+                                "name": "Build Result",
+                                "value": "${buildStatus}"
+                            },
+                            {
+                                "name": "Source Branch",
+                                "value": "${env.SOURCE_BRANCH}"
+                            },
+                            {
+                                "name": "Target Branch",
+                                "value": "test"
+                            }
+                        ],
+                        "footer": {
+                            "text": "Jenkins CI/CD Notification"
+                        },
+                        "timestamp": "${new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))}"
+                    }]
+                }
+                """
+
+                // Capture console output if available
+                def consoleOutput = sh(script: 'cat ${BUILD_LOG_FILE}', returnStdout: true).trim()
+                discordMessage = discordMessage.replace('}', ", \"fields\": [{ \"name\": \"Console Output\", \"value\": \"```${consoleOutput}```\" }]} }")
+
+                withCredentials([string(credentialsId: 'discord-build-status', variable: 'DISCORD_BUILD_STATUS')]) {
+                    writeFile file: 'discord_payload.json', text: discordMessage
+                    sh '''
+                        curl -X POST "${DISCORD_BUILD_STATUS}" \\
+                        -H "Content-Type: application/json" \\
+                        -d @discord_payload.json
+                    '''
+                }
+                echo "Discord notification sent for build failure."
+            }
+        }
         always {
             echo "Cleaning workspace..."
-            cleanWs() 
+            cleanWs()
         }
     }
 }
