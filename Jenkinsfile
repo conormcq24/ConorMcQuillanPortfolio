@@ -134,26 +134,25 @@ pipeline {
                         string(credentialsId: 'discord-inbox-url', variable: 'DISCORD_PORTFOLIO_INBOX_URL'),
                         string(credentialsId: 'github-repo-access', variable: 'GITHUB_REPO_ACCESS')
                     ]) {
-                        sh """
-                        # Build the Docker image
-                        docker build -t ${DOCKER_REGISTRY}/portfolio:test ./publish
+                        sh '''
+                        # Build the Docker image with explicit Dockerfile path
+                        docker build -t ''' + env.DOCKER_REGISTRY + '''/portfolio:test -f ./ConorMcQuillanPortfolio/Dockerfile ./publish
                         
                         # Stop any existing container
-                        docker stop ${TEST_CONTAINER_NAME} || true
-                        docker rm ${TEST_CONTAINER_NAME} || true
+                        docker stop ''' + env.TEST_CONTAINER_NAME + ''' || true
+                        docker rm ''' + env.TEST_CONTAINER_NAME + ''' || true
                         
                         # Run the new container
-                        docker run -d --name ${TEST_CONTAINER_NAME} \\
-                            -p ${TEST_PORT}:80 \\
-                            -e ASPNETCORE_ENVIRONMENT=Staging \\
-                            -e DISCORD_PORTFOLIO_INBOX_URL='${DISCORD_PORTFOLIO_INBOX_URL}' \\
-                            -e GITHUB_REPO_ACCESS='${GITHUB_REPO_ACCESS}' \\
-                            ${DOCKER_REGISTRY}/portfolio:test
-                        """
+                        docker run -d --name ''' + env.TEST_CONTAINER_NAME + ''' \
+                            -p ''' + env.TEST_PORT + ''':80 \
+                            -e ASPNETCORE_ENVIRONMENT=Staging \
+                            -e DISCORD_PORTFOLIO_INBOX_URL="''' + DISCORD_PORTFOLIO_INBOX_URL + '''" \
+                            -e GITHUB_REPO_ACCESS="''' + GITHUB_REPO_ACCESS + '''" \
+                            ''' + env.DOCKER_REGISTRY + '''/portfolio:test
+                        '''
                     }
                     
                     echo "Docker container for test environment is now running."
-
                 }
             }
         }
