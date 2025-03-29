@@ -75,16 +75,49 @@
                                       material-variant="oak"
                                       exposure="0.8"
                                       style="width: 100%; height: 200px; background-color: #212529;">
-                            <material-variant name="oak" material="1">
-                                <color-material color="#c49c64"></color-material>
-                            </material-variant>
                         </model-viewer>
-                        <p>This is a model for my minecraft furniture mod, its base texture for the wood is white so that I can apply a hue on it to take on one of ten different types of wood with a single texture</p>
+                        <p>This is the sink I made for my minecraft furniture mod, it uses two textures one of which is entirely grayscale so that I can overlay a color on it to simulate each of the 10 minecraft wood types</p>
                         <button class="btn btn-primary mb-2 mt-auto" onclick="switchModel('sink-model', '/models/SinkOff.glb')">Off</button>
                         <button class="btn btn-primary mb-2" onclick="switchModel('sink-model', '/models/SinkOn.glb')">On</button>
                         <div class="mb-2">
                             <label for="sink-model-color" class="form-label">Wood Type:</label>
                             <select id="sink-model-color" class="form-select bg-dark text-white">
+                                <option value="acacia">Acacia</option>
+                                <option value="birch">Birch</option>
+                                <option value="cherry">Cherry</option>
+                                <option value="crimson">Crimson</option>
+                                <option value="dark_oak">Dark Oak</option>
+                                <option value="jungle">Jungle</option>
+                                <option value="mangrove">Mangrove</option>
+                                <option value="oak">Oak</option>
+                                <option value="spruce">Spruce</option>
+                                <option value="warped">Warped</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-10 offset-1 col-md-6 offset-md-0 text-white mb-4">
+                <div class="card bg-dark border border-white h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-warning fw-bolder tektur-font mb-0">Minecraft Counter</h5>
+                        <model-viewer id="counter-model"
+                                      alt="counter model"
+                                      src="/models/Counter.glb"
+                                      cors-mode="anonymous"
+                                      auto-rotate
+                                      camera-controls
+                                      shadow-intensity="1"
+                                      environment-image="neutral"
+                                      camera-orbit="180deg 75deg 105%"
+                                      material-variant="oak"
+                                      exposure="0.8"
+                                      style="width: 100%; height: 200px; background-color: #212529;">
+                        </model-viewer>
+                        <p>This is the counter top I made for my minecraft furniture mod, it uses two textures, one which is entirely in gray scale so that I can overlay a color over it for each of the 10 minecraft wood types</p>
+                        <div class="mb-2 mt-auto">
+                            <label for="counter-model-color" class="form-label">Wood Type:</label>
+                            <select id="counter-model-color" class="form-select bg-dark text-white">
                                 <option value="acacia">Acacia</option>
                                 <option value="birch">Birch</option>
                                 <option value="cherry">Cherry</option>
@@ -119,7 +152,24 @@
                     spruce: '#7c5c34',
                     warped: '#3c8c8c'
                 },
-                defaultColor: 'oak',
+                defaultColor: 'acacia',
+                darkenFactor: 0.4
+            },
+            'counter-model': {
+                materialIndex: 0,
+                colors: {
+                    acacia: '#b05c34',
+                    birch: '#d4c484',
+                    cherry: '#dc9c94',
+                    crimson: '#843c5c',
+                    dark_oak: '#4c341c',
+                    jungle: '#b8885c',
+                    mangrove: '#8c4c3c',
+                    oak: '#c49c64',
+                    spruce: '#7c5c34',
+                    warped: '#3c8c8c'
+                },
+                defaultColor: 'acacia',
                 darkenFactor: 0.4
             }
         }
