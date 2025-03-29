@@ -210,7 +210,7 @@ public class HomeController : Controller
         return carouselList;
     }
     [HttpPost]
-    public async Task<IActionResult> SendEmail(string FirstName, string LastName, string Email, string PhoneNumber, string Message)
+    public async Task<IActionResult> SendMessage(string FirstName, string LastName, string Email, string PhoneNumber, string Message)
     {
         try
         {
