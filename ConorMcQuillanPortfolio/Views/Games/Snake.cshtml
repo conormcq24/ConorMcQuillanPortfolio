@@ -1,0 +1,171 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<style>
+    #snakeCanvas {
+        display: block;
+        background-color: #000;
+    }
+
+    /* Any other snake-specific styling will go here */
+</style>
+<br />
+<div class="col-10 offset-1 col-md-8 offset-md-2 text-white p-3">
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white p-3">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h2 class="game-title tektur-font">Snake Game</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center">
+                <div id="gameContainer">
+                    <canvas id="snakeCanvas" width="600" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div id="controls">
+                    <div class="instruction">Use Arrow Keys (↑ ↓ ← →) or WASD to control direction</div>
+                    <div id="keyDisplay">Press any control key...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('snakeCanvas');
+    const ctx = canvas.getContext('2d');
+    const keyDisplay = document.getElementById('keyDisplay');
+
+    // Grid settings for 30x30 grid in a canvas width of 600px
+    const gridSize = canvas.width / 30;
+    const gridCount = 30;
+
+    // Player position (starting in center of grid)
+    let playerX = Math.floor(gridCount / 2); // Grid position 15
+    let playerY = Math.floor(gridCount / 2); // Grid position 15
+
+    // Key mapping
+    const keyMap = {
+        'ArrowUp': 'UP',
+        'ArrowDown': 'DOWN',
+        'ArrowLeft': 'LEFT',
+        'ArrowRight': 'RIGHT',
+        'KeyW': 'UP',
+        'KeyS': 'DOWN',
+        'KeyA': 'LEFT',
+        'KeyD': 'RIGHT'
+    };
+
+    function drawGrid() {
+        // Clear canvas with black background
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid lines
+        ctx.strokeStyle = '#333'; // Dark gray lines so they're subtle
+        ctx.lineWidth = 1;
+
+        // Draw vertical lines
+        for (let x = 0; x <= gridCount; x++) {
+            const xPos = x * gridSize;
+            ctx.beginPath();
+            ctx.moveTo(xPos, 0);
+            ctx.lineTo(xPos, canvas.height);
+            ctx.stroke();
+        }
+
+        // Draw horizontal lines
+        for (let y = 0; y <= gridCount; y++) {
+            const yPos = y * gridSize;
+            ctx.beginPath();
+            ctx.moveTo(0, yPos);
+            ctx.lineTo(canvas.width, yPos);
+            ctx.stroke();
+        }
+    }
+    function drawPlayer() {
+        // Draw green rectangle at player position
+        ctx.fillStyle = '#00FF00'; // Bright green
+        ctx.fillRect(
+            playerX * gridSize,
+            playerY * gridSize,
+            gridSize,
+            gridSize
+        );
+    }
+    function updateDisplay() {
+        drawGrid();
+        drawPlayer();
+
+        // Update key display with current position
+        keyDisplay.innerHTML = `
+            Position: (${playerX}, ${playerY})<br>
+            Pixel Position: (${playerX * gridSize}, ${playerY * gridSize})
+        `;
+    }
+    function movePlayer(direction) {
+        switch(direction) {
+            case 'UP':
+               if (playerY > 0) {
+                    playerY--;
+                } else {
+                    playerY = gridCount - 1; // Go to bottom (29)
+                }
+                break;
+            case 'DOWN':
+                if (playerY < gridCount - 1) {
+                    playerY++;
+                } else {
+                    playerY = 0;
+                }
+                break;
+            case 'LEFT':
+                if (playerX > 0) {
+                    playerX--;
+                }
+                else {
+                    playerX = gridCount - 1;
+                }
+                break;
+            case 'RIGHT':
+                if (playerX < gridCount - 1) {
+                    playerX++;
+                }
+                else {
+                    playerX = 0;
+                }
+                break;
+        }
+        updateDisplay();
+    }
+
+
+    document.addEventListener('keydown', function(event) {
+        if (keyMap[event.code]) {
+            // prevent page from scrolling on key press
+            event.preventDefault();
+
+            // use the earlier declared keymap to decide which direction the character is moving from input
+            const direction = keyMap[event.code];
+
+            // call movePlayer with the decided direction
+            movePlayer(direction);
+
+            console.log(`Moved ${direction} to position (${playerX}, ${playerY})`);
+        }
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        updateDisplay();
+        console.log(`Game initialized: Player at center (${playerX}, ${playerY})`);
+        console.log(`Grid: ${gridCount}x${gridCount} (${gridSize}px per cell)`);
+    });
+</script>
