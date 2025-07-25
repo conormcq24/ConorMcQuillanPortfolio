@@ -1,0 +1,6 @@
+services:
+  mysql-test:
+    image: mysql:8.0  # Uses pre-built MySQL image
+    
+  portfolio-test:
+    image: localhost/portfolio:test
