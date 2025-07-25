@@ -1,0 +1,371 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+<style>
+    #snakeCanvas {
+        display: block;
+        background-color: #000;
+    }
+</style>
+<br />
+<div class="col-10 offset-1 col-md-8 offset-md-2 text-white p-3">
+    <br />
+    <div class="col-10 offset-1 col-md-8 offset-md-2 text-white p-3">
+        <div class="row">
+            <div class="col-12 text-center">
+                <h2 class="game-title tektur-font">Snake Game</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 d-flex justify-content-center">
+                <div id="gameContainer">
+                    <canvas id="snakeCanvas" width="600" height="600"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div id="controls">
+                    <div class="instruction">Use Arrow Keys (↑ ↓ ← →) or WASD to control direction</div>
+                    <div id="keyDisplay">Press any control key to start...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+<!-- This is the game logic for Snake -->
+
+<script>
+    /* global variables */
+    const canvas = document.getElementById('snakeCanvas');
+    const ctx = canvas.getContext('2d');
+    const keyDisplay = document.getElementById('keyDisplay');
+    const gridSize = canvas.width / 30;
+    const gridCount = 30;
+    let gameState = 'waiting'; // 'waiting', 'playing', 'gameOver'
+    let currentDirection = null;
+    let gameSpeed = 70; // Milliseconds between moves
+    let lastMoveTime = 0;
+    let snake = [
+        {x: 15, y: 15}
+    ]
+
+    // Apple variables
+    let appleX = 0;
+    let appleY = 0;
+    let score = 0;
+
+    const keyMap = {
+        'ArrowUp': 'UP',
+        'ArrowDown': 'DOWN',
+        'ArrowLeft': 'LEFT',
+        'ArrowRight': 'RIGHT',
+        'KeyW': 'UP',
+        'KeyS': 'DOWN',
+        'KeyA': 'LEFT',
+        'KeyD': 'RIGHT'
+    };
+
+    /* function that checks if snake head collides with its own body */
+    function checkSelfCollision() {
+        const head = snake[0];
+
+        // Check if head collides with any body segment (skip index 0 since that's the head)
+        for (let i = 1; i < snake.length; i++) {
+            if (head.x === snake[i].x && head.y === snake[i].y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /* function that handles game over */
+    function gameOver() {
+        gameState = 'gameOver';
+        console.log(`Game Over! Final Score: ${score}`);
+    }
+
+    /* function that resets the game for a new round */
+    function resetGame() {
+        snake = [{x: 15, y: 15}];
+        currentDirection = null;
+        score = 0;
+        gameState = 'waiting';
+    }
+
+    /* function that spawns apple at random location (not on snake) */
+    function spawnApple() {
+        let validPosition = false;
+
+        while (!validPosition) {
+            appleX = Math.floor(Math.random() * gridCount);
+            appleY = Math.floor(Math.random() * gridCount);
+
+            // Check if apple position conflicts with any snake segment
+            validPosition = true;
+            for (let segment of snake) {
+                if (appleX === segment.x && appleY === segment.y) {
+                    validPosition = false;
+                    break;
+                }
+            }
+        }
+
+        console.log(`Apple spawned at (${appleX}, ${appleY})`);
+    }
+
+    /* function that draws the red apple */
+    function drawApple() {
+        ctx.fillStyle = '#FF0000'; // Red color
+        ctx.fillRect(
+            appleX * gridSize,
+            appleY * gridSize,
+            gridSize,
+            gridSize
+        );
+    }
+
+    /* function that checks if player is on apple */
+    function checkAppleCollision() {
+        if (snake[0].x === appleX && snake[0].y === appleY) {
+            score = score + 10;
+            console.log(`Apple eaten! Score: ${score}`);
+            spawnApple(); // Spawn new apple
+            return true;
+        }
+        return false;
+    }
+
+    /* function that draws the background and grid of the game canvas */
+    function drawGrid() {
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= gridCount; x++) {
+            const xPos = x * gridSize;
+            ctx.beginPath();
+            ctx.moveTo(xPos, 0);
+            ctx.lineTo(xPos, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= gridCount; y++) {
+            const yPos = y * gridSize;
+            ctx.beginPath();
+            ctx.moveTo(0, yPos);
+            ctx.lineTo(canvas.width, yPos);
+            ctx.stroke();
+        }
+    }
+
+    /* function that handles drawing the snake every frame */
+    function drawPlayer() {
+        // Draw all segments of the snake with alternating colors
+        for (let i = 0; i < snake.length; i++) {
+            // Alternate between two shades of green based on segment index
+            if (i % 2 === 0) {
+                ctx.fillStyle = '#00FF00'; // Bright green for even segments (0, 2, 4...)
+            } else {
+                ctx.fillStyle = '#00CC00'; // Darker green for odd segments (1, 3, 5...)
+            }
+
+            ctx.fillRect(
+                snake[i].x * gridSize,
+                snake[i].y * gridSize,
+                gridSize,
+                gridSize
+            );
+        }
+    }
+
+    /* function which handles the starting display message */
+    function drawStartMessage() {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        ctx.fillText('Press any control key to start', centerX, centerY);
+    }
+
+    /* function that displays game over screen */
+    function drawGameOverMessage() {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        ctx.fillText('GAME OVER', centerX, centerY - 30);
+        ctx.fillText(`Final Score: ${score}`, centerX, centerY);
+        ctx.fillText('Press any key to play again', centerX, centerY + 30);
+    }
+
+    /* function that redraws the entire game display */
+    function updateDisplay() {
+        drawGrid();
+
+        if (gameState === 'waiting') {
+            drawStartMessage();
+        } else if (gameState === 'playing') {
+            drawApple();  // Draw apple first (behind player)
+            drawPlayer(); // Draw player on top
+        } else if (gameState === 'gameOver') {
+            drawPlayer(); // Show final snake position
+            drawGameOverMessage(); // Show game over screen
+        }
+
+        if (gameState === 'waiting') {
+            keyDisplay.innerHTML = `Press any control key to start...`;
+        } else if (gameState === 'playing') {
+            keyDisplay.innerHTML = `
+                Position: (${snake[0].x}, ${snake[0].y})<br>
+                Direction: ${currentDirection}<br>
+                Score: ${score}<br>
+                Snake Length: ${snake.length}
+            `;
+        } else if (gameState === 'gameOver') {
+            keyDisplay.innerHTML = `
+                GAME OVER<br>
+                Final Score: ${score}<br>
+                Snake Length: ${snake.length}<br>
+                Press any key to restart
+            `;
+        }
+    }
+
+    /* function that handles player movement */
+    function movePlayer() {
+        if (gameState !== 'playing' || !currentDirection) return;
+
+        // 1. Create new head with current position
+        let newHead = {x: snake[0].x, y: snake[0].y};
+
+        // 2. Move the NEW HEAD (not snake[0])
+        switch(currentDirection) {
+            case 'UP':
+                if (newHead.y > 0) {
+                    newHead.y--;
+                } else {
+                    newHead.y = gridCount - 1;
+                }
+                break;
+            case 'DOWN':
+                if (newHead.y < gridCount - 1) {
+                    newHead.y++;
+                } else {
+                    newHead.y = 0;
+                }
+                break;
+            case 'LEFT':
+                if (newHead.x > 0) {
+                    newHead.x--;
+                } else {
+                    newHead.x = gridCount - 1;
+                }
+                break;
+            case 'RIGHT':
+                if (newHead.x < gridCount - 1) {
+                    newHead.x++;
+                } else {
+                    newHead.x = 0;
+                }
+                break;
+        }
+
+        // 3. Add the moved newHead to front
+        snake.unshift(newHead);
+
+        // 4. Check for self collision
+        if (checkSelfCollision()) {
+            gameOver();
+            updateDisplay();
+            return;
+        }
+
+        // 5. Check collision and grow/shrink
+        let ateApple = checkAppleCollision();
+        if (!ateApple) {
+            snake.pop();
+        }
+
+        updateDisplay();
+    }
+
+    /* function which handles start of game */
+    function startGame(direction) {
+        gameState = 'playing';
+        currentDirection = direction;
+        score = 0; // Reset score
+        spawnApple(); // Spawn first apple
+        console.log(`Game started! Moving ${direction}`);
+    }
+
+    /* the game loop function (continuous count and frames) */
+    function gameLoop(currentTime) {
+        if (currentTime - lastMoveTime >= gameSpeed) {
+            movePlayer();
+            lastMoveTime = currentTime;
+        }
+        requestAnimationFrame(gameLoop);
+    }
+
+    /* event listener for input keys */
+    document.addEventListener('keydown', function(event) {
+        if (keyMap[event.code]) {
+            event.preventDefault();
+
+            const direction = keyMap[event.code];
+
+            if (gameState === 'waiting') {
+                // Start the game with the pressed direction
+                startGame(direction);
+            } else if (gameState === 'playing') {
+                // Change direction (prevent opposite direction)
+                if (!isOppositeDirection(currentDirection, direction)) {
+                    currentDirection = direction;
+                    console.log(`Direction changed to: ${currentDirection}`);
+                }
+            } else if (gameState === 'gameOver') {
+                // Reset and start new game
+                resetGame();
+                startGame(direction);
+            }
+        }
+    });
+
+    /* helper function preventing moving back into yourself */
+    function isOppositeDirection(current, newDir) {
+        const opposites = {
+            'UP': 'DOWN',
+            'DOWN': 'UP',
+            'LEFT': 'RIGHT',
+            'RIGHT': 'LEFT'
+        };
+        return opposites[current] === newDir;
+    }
+
+    /* game initialization */
+    document.addEventListener('DOMContentLoaded', function() {
+        updateDisplay();
+        console.log('Snake Game initialized - waiting for player input');
+        console.log(`Grid: ${gridCount}x${gridCount} (${gridSize}px per cell)`);
+
+        requestAnimationFrame(gameLoop);
+    });
+</script>
